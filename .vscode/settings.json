@@ -1,0 +1,42 @@
+{
+    // The root repository is the org's `.github` repo: prose, JSON, and the
+    // seven submodule pointers. Nothing here is built.
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.rulers": [80],
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+
+    // ancaria.code-workspace is 4-space JSONC; Markdown lists are 2.
+    "[markdown]": {
+        "editor.tabSize": 2
+    },
+
+    // Only bites when this directory is opened as a plain folder rather than
+    // through ancaria.code-workspace -- that file already hides the submodules
+    // from this root. A plain-folder open sees all seven, and an unfiltered
+    // search across them is mostly Cargo and Gradle output.
+    // `**/*/build` rather than `**/build`: the latter would also match the
+    // `build/` submodule itself.
+    "search.exclude": {
+        "**/*/build": true,
+        "**/target": true,
+        "**/.gradle": true,
+        "**/.kotlin": true,
+        "**/dist": true,
+        "**/__pycache__": true,
+        "launcher/install/payload": true,
+        "protocol/vendor": true
+    },
+    "files.watcherExclude": {
+        "**/*/build/**": true,
+        "**/target/**": true,
+        "**/.gradle/**": true,
+        "**/.kotlin/**": true,
+        "**/dist/**": true,
+        "**/__pycache__/**": true,
+        "**/install/payload/**": true
+    }
+}
