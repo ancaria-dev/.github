@@ -1,0 +1,7 @@
+{
+    // VS Code does not read .editorconfig natively, and every repository in this
+    // workspace ships one.
+    "recommendations": [
+        "editorconfig.editorconfig"
+    ]
+}
