@@ -1,0 +1,28 @@
+[submodule "mappings"]
+	path = mappings
+	url = https://github.com/ancaria-dev/mappings.git
+	branch = master
+[submodule "research"]
+	path = research
+	url = https://github.com/ancaria-dev/research.git
+	branch = master
+[submodule "coderpack"]
+	path = coderpack
+	url = https://github.com/ancaria-dev/coderpack.git
+	branch = master
+[submodule "protocol"]
+	path = protocol
+	url = https://github.com/ancaria-dev/protocol.git
+	branch = master
+[submodule "launcher"]
+	path = launcher
+	url = https://github.com/ancaria-dev/launcher.git
+	branch = master
+[submodule "build"]
+	path = build
+	url = https://github.com/ancaria-dev/build.git
+	branch = master
+[submodule "mods"]
+	path = mods
+	url = https://github.com/ancaria-dev/mods.git
+	branch = master
