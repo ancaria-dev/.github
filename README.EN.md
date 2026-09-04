@@ -43,7 +43,7 @@ repository, but its separate remote has not been created yet.
 | [`launcher`](https://github.com/ancaria-dev/launcher) | The Windows executable that installs the loader, manages mods, and starts the game. |
 | [`build`](https://github.com/ancaria-dev/build) | The Gradle plugin, mod linter, and `coderpack` project scaffolder. The Maven directory currently contains design notes only. |
 | [`mods`](https://github.com/ancaria-dev/mods) | The default SRML mod repository and the source for four mods. |
-| `idea` | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. Its separate repository has not been created yet. |
+| [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. The repository exists but is still empty. |
 
 ## For players
 
