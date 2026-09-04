@@ -59,10 +59,11 @@ multiplayer features, DRM bypass, game executable, or redistributed game files.
 
 ## Repository ownership
 
-The project has seven component repositories at
-`https://github.com/ancaria-dev/<name>.git`, all included here as submodules.
-The local `idea` directory is the source for a planned eighth repository. It
-does not yet have a separate remote and is not listed in `.gitmodules`.
+The project has eight component repositories at
+`https://github.com/ancaria-dev/<name>.git`, all included here as submodules,
+including `idea`, the source for the IntelliJ IDEA plugin. Its remote exists
+but is still empty; a clone taken before `idea/` is pushed gets an empty
+checkout for it.
 
 | Directory | Owns |
 |---|---|
@@ -73,7 +74,7 @@ does not yet have a separate remote and is not listed in `.gitmodules`.
 | `launcher` | The Go executable placed in the game folder. It embeds everything it installs. |
 | `build` | The Gradle plugin, mod linter, and `coderpack` project scaffolder. `build/maven` currently contains design notes only. |
 | `mods` | The default SRML repository, its index, and the source for four mods. |
-| `idea` | Pending local source for the IntelliJ IDEA plugin, including the New Project wizard, Run Sacred configuration, gutter icons, and loader settings. Its workflow is prepared for GitHub and JetBrains Marketplace publication, but the project has no separate remote yet. |
+| `idea` | The IntelliJ IDEA plugin, including the New Project wizard, Run Sacred configuration, gutter icons, and loader settings. Its workflow is prepared for GitHub and JetBrains Marketplace publication. |
 
 `ancaria.code-workspace` opens the workspace root and all eight project
 directories in one VS Code window. It hides those directories under the root so
@@ -90,12 +91,12 @@ git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
 git submodule update --init --recursive     # if cloned without the flag
 ```
 
-The root repository and all seven submodules use `master`. Each entry in
+The root repository and all eight submodules use `master`. Each entry in
 `.gitmodules` pins `branch = master`.
 
-The recursive clone does not include `idea`. Create and publish its separate
-repository before adding it as the eighth submodule. The
-`https://github.com/ancaria-dev/idea.git` remote is not currently available.
+`idea` is pushed last in the publish order. A recursive clone taken before
+that push gets an empty checkout for it; run
+`git submodule update --remote idea` again once it has commits.
 
 A full workspace is optional. Side-by-side checkouts provide direct source
 coupling. `coderpack` can generate its address table from `../mappings`,
@@ -123,13 +124,13 @@ Each repository can be developed without cloning the complete workspace.
   The downloaded files are `protocol.exe`, `api.jar`, `zygote.jar`, and
   `agent.zip`. The zip already contains the generated address table. Run
   `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
-- The pending local `idea` source resolves the scaffolder as
+- `idea` resolves the scaffolder as
   `dev.ancaria.coderpack:templates`. Its
   `settings.gradle.kts` includes a sibling `../build/gradle` as a composite
   build when present. Without that sibling, dependency resolution uses Maven
   Local or Maven Central. Its prepared workflow checks out `build` outside the
   sibling location, publishes the required artifacts to Maven Local, and is
-  designed to test repository-based resolution once the project has a remote.
+  designed to test repository-based resolution once `idea` has been pushed.
 - `build`, `mappings`, and `research` read no sibling checkout. `mods` resolves
   the plugin and API through Maven. Until the first releases are available, its
   CI checks out `build` and `coderpack` and publishes them to Maven Local.
@@ -187,20 +188,20 @@ release or generated project that names that artifact version. Release `build`
 before releasing mods that require its new plugin or linter. Mod releases then
 remain independent and use `<id>-v<version>` tags.
 
-The pending `idea` source cannot publish until it has its own remote and the
-Marketplace credentials are configured. Its workflow is prepared to publish
-the same plugin zip to the JetBrains Marketplace and a GitHub release. Once
-that release path exists, release `build` first when the scaffolder changed,
-then raise `pluginVersion` in `idea`.
+`idea` cannot publish until it has been pushed and its CI has run once. Its
+workflow is prepared to publish the same plugin zip to the JetBrains
+Marketplace and a GitHub release. Once that first push has happened, release
+`build` first when the scaffolder changed, then raise `pluginVersion` in
+`idea`.
 
 ## Rules
 
 - Commit in the repository that owns the changed file. Changes inside a
   submodule belong to that repository’s history and remote. Changes to
   root-owned files such as this guide, the root READMEs, `.gitmodules`, or
-  `ancaria.code-workspace` belong to the root repository. The local `idea`
-  source is pending extraction into its own repository. Do not claim or run a
-  release from it until that remote exists.
+  `ancaria.code-workspace` belong to the root repository. `idea` has its own
+  repository and remote now. Do not claim or run a release from it until it
+  has been pushed and its CI has run once.
 - Do not move or rename a project directory. Sibling resolution uses these
   directory names. A move can silently switch a build to downloaded artifacts.
 - Do not copy files between repositories to avoid rebuilding. Generate
@@ -217,16 +218,15 @@ then raise `pluginVersion` in `idea`.
 - If the game runs elevated, the host, launcher, and every attaching probe in
   `research` must also run elevated. A permissions mismatch can look like an
   endless wait for a process the tool can already see.
-- The pending `idea` source is the only component that consumes another
-  component’s Kotlin implementation. Both its New Project dialog and
-  `coderpack new` use
+- `idea` is the only component that consumes another component’s Kotlin
+  implementation. Both its New Project dialog and `coderpack new` use
   `dev.ancaria.coderpack:templates`. Do not create a second copy of those
   templates.
-- The root repository has no CI. Five component repositories have
+- The root repository has no CI. Six component repositories have
   `.github/workflows/build.yml`: `build`, `coderpack`, `protocol`, `launcher`,
-  and `mods`. The pending `idea` source also contains a workflow, but it cannot
-  run as that project’s CI until the separate repository exists. `mappings`
-  and `research` have no workflow, so run their checks manually.
+  `mods`, and `idea`. `idea`'s workflow cannot run as that project's CI until
+  it has been pushed. `mappings` and `research` have no workflow, so run their
+  checks manually.
 - `launcher` CI deliberately uses the download path without sibling checkouts.
   This tests an isolated launcher clone on every push. Exercise the from-source
   path locally when changing how sibling outputs are built or staged.
