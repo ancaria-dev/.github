@@ -224,6 +224,24 @@ Ancaria begann als Proof of Concept. Verbindlichen Support gibt es nicht. Das
 Projekt beantwortet zunächst eine sehr konkrete Frage: Kann ein Java-Mod in
 einem alten Lieblingsspiel funktionieren?
 
+## Referenzen
+
+Ein Teil der Ergebnisse in `research` und `mappings` baut auf früherer
+Community-Arbeit auf: Reverse Engineering der Datenformate und Strukturen des
+Spiels in [SacredGameTools](https://github.com/sonicmouse/SacredGameTools) und
+[sacred-sdk](https://github.com/bssth/sacred-sdk). Die Modifikation
+[pureHD](https://steamcommunity.com/app/12320/discussions/0/3191364450206457546/)
+ist die Basis für die Mods hier – jede Adresse in `mappings` zielt auf genau
+diesen `pureHD.exe`-Build.
+
+Danke an die Community, die dieses Spiel von 2004 immer noch auseinandernimmt,
+obwohl die moderne Spieleindustrie solchen Spielen längst den Tod vorherbestimmt
+hat. Der Autor hat seitdem Path of Exile, Path of Exile 2, Last Epoch und Titan
+Quest gespielt – keines davon ist es: nicht die Atmosphäre, nicht der Vibe,
+nicht die unbeschwerte, lässige und zugleich durchdachte Machart, die Sacred
+hatte. Solche Spiele wird es nie wieder geben, aber im Herzen bleibt es
+trotzdem.
+
 ## Lizenz
 
 MIT, siehe [LICENSE](LICENSE).

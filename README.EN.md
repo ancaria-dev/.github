@@ -204,6 +204,23 @@ releases are published one at a time under tags of the form `<id>-v<version>`.
 
 The project began as a proof of concept and does not promise support.
 
+## References
+
+Some of the findings in `research` and `mappings` build on earlier community
+work: reverse-engineering of the game's formats and structures in
+[SacredGameTools](https://github.com/sonicmouse/SacredGameTools) and
+[sacred-sdk](https://github.com/bssth/sacred-sdk). The
+[pureHD](https://steamcommunity.com/app/12320/discussions/0/3191364450206457546/)
+modification is the base for the mods here — every address in `mappings`
+targets that exact `pureHD.exe` build.
+
+Thanks to the community that still keeps taking this 2004 game apart, even
+though the modern games industry long ago wrote it off. The author has played
+Path of Exile, Path of Exile 2, Last Epoch, and Titan Quest since — none of
+them are it: not the atmosphere, not the vibe, not the same carefree, casual,
+and well-crafted game Sacred was. Games like it will never be made again, but
+it stays in the heart regardless.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
