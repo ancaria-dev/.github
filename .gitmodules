@@ -26,3 +26,7 @@
 	path = mods
 	url = https://github.com/ancaria-dev/mods.git
 	branch = master
+[submodule "idea"]
+	path = idea
+	url = https://github.com/ancaria-dev/idea.git
+	branch = master
