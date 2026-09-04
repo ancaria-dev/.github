@@ -1,0 +1,240 @@
+# ancaria workspace root
+
+## Repository purpose
+
+This is the organisation’s `.github` repository. It contains the
+[ancaria.dev](https://ancaria.dev) front page and the workspace files that join
+the project repositories. It contains no application code.
+
+## Project architecture
+
+Sacred was released in 2004. The Sacred Gold compilation followed in 2005.
+ancaria is a mod loader for Sacred Gold. Mods are written in Java against an
+event API and loaded while the game is running.
+
+Every address in the project targets `pureHD.exe` 2.0.2.118, a 32-bit community
+HD wrapper with image base `0x00400000`. Those addresses do not target the stock
+`Sacred.exe`. The loader’s JVM is 64-bit and cannot run inside the 32-bit game
+process, so the Rust host runs it as a separate process and carries events
+between the game and Java.
+
+The launcher, host, and agent locate the game by trying `pureHD.exe`,
+`Sacred.exe`, then `Game.exe`, without regard to case. The address table still
+belongs to the supported `pureHD.exe` build. The launcher reports the detected
+build before Play. On attach, the agent compares the bytes at its 20 hook sites
+with the checked-in signatures and prints a console warning when they differ.
+Attaching to another executable name or build is allowed, but the warning does
+not make its addresses safe.
+
+    launcher   Installs the loader into the game folder and starts the host
+    protocol   Rust host that injects the agent with Frida, starts the JVM,
+               and routes frames in both directions
+    agent      JavaScript inside the game that hooks the game’s instructions
+    zygote     JVM-side loader that loads mod jars and dispatches events
+    mod        Java compiled against the coderpack API
+
+Observed events travel from agent to host to JVM asynchronously. A cancelable
+event travels as an `ASK` and stops the game thread while the mod decides. The
+host’s verdict deadline is 250 ms, but its watchdog scans every 125 ms and
+marks an ask overdue only after its age exceeds the deadline. The fallback
+`ok` verdict is therefore queued roughly 250 to 375 ms after the ask, plus
+scheduler and poster-loop delay. Keep cancelable handlers short and never
+describe 250 ms as a strict worst-case block time.
+
+After installation, `<Sacred Gold>/launcher/` contains the host, jars, agent,
+and `VERSION` file. Mods live in `<Sacred Gold>/mods`.
+
+The launcher looks for a JDK 21 or newer in `<Sacred Gold>/launcher/java`,
+then `JAVA_HOME`, then `PATH`. It continues past an older JDK and uses the
+first suitable one. If none is suitable, the launcher and game still run, but
+mods do not load. Get Java downloads a selected JDK into
+`<Sacred Gold>/launcher/java`. The launcher passes the chosen executable to
+the host with `--java`. It does not change `PATH`, write Java registry keys, or
+install the JDK outside the game folder.
+
+The loader does not patch the game files on disk. Hooks exist only in the
+running process and disappear when it exits. The project is for single-player
+use and requires a legally owned, installed copy of Sacred Gold. It provides no
+multiplayer features, DRM bypass, game executable, or redistributed game files.
+
+## Repository ownership
+
+The project has seven component repositories at
+`https://github.com/ancaria-dev/<name>.git`, all included here as submodules.
+The local `idea` directory is the source for a planned eighth repository. It
+does not yet have a separate remote and is not listed in `.gitmodules`.
+
+| Directory | Owns |
+|---|---|
+| `mappings` | The address registry for `pureHD.exe` 2.0.2.118, including each VA, RVA, and confidence level. |
+| `research` | Disassembly scripts, live probes, and research notes. Nothing here ships to players. |
+| `coderpack` | The Frida agent in `agent/src`, the Java API in `api`, the JVM-side loader in `zygote`, and the Python tools that read the address registry. |
+| `protocol` | The wire protocol and Rust host. It builds `protocol.exe`. |
+| `launcher` | The Go executable placed in the game folder. It embeds everything it installs. |
+| `build` | The Gradle plugin, mod linter, and `coderpack` project scaffolder. `build/maven` currently contains design notes only. |
+| `mods` | The default SRML repository, its index, and the source for four mods. |
+| `idea` | Pending local source for the IntelliJ IDEA plugin, including the New Project wizard, Run Sacred configuration, gutter icons, and loader settings. Its workflow is prepared for GitHub and JetBrains Marketplace publication, but the project has no separate remote yet. |
+
+`ancaria.code-workspace` opens the workspace root and all eight project
+directories in one VS Code window. It hides those directories under the root so
+they do not appear twice in the file tree.
+
+Edit the repository that owns the change. Put addresses in `mappings`, hooks in
+`coderpack`, and investigative probes in `research`. When a probe establishes
+an address or fact used by the loader, record the result in `mappings`.
+
+## Checkout
+
+```text
+git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
+git submodule update --init --recursive     # if cloned without the flag
+```
+
+The root repository and all seven submodules use `master`. Each entry in
+`.gitmodules` pins `branch = master`.
+
+The recursive clone does not include `idea`. Create and publish its separate
+repository before adding it as the eighth submodule. The
+`https://github.com/ancaria-dev/idea.git` remote is not currently available.
+
+A full workspace is optional. Side-by-side checkouts provide direct source
+coupling. `coderpack` can generate its address table from `../mappings`,
+`protocol` can bundle the agent from `../coderpack`, and `launcher` can build
+and stage both sibling projects without waiting for published artifacts.
+
+## Independent builds
+
+Each repository can be developed without cloning the complete workspace.
+
+- `coderpack` locates the registry in this order: a command-line path,
+  `$CODERPACK_MAPPINGS`, the sibling `../mappings`, then
+  `https://raw.githubusercontent.com/ancaria-dev/mappings/<ref>/mappings.json`.
+  Downloads are cached under `build/mappings/`. The ref comes from
+  `coderpack/.mappings-ref`, currently `master`. Use a tag or commit there when
+  the build must be reproducible. See `coderpack/tools/paths.py`.
+- `protocol` tests its bundler against `protocol/tests/agent/`, a fixture owned
+  by that repository. Its end-to-end test searches for the newest coderpack
+  `api` and `zygote` jars in `../coderpack/*/build/libs` and then in
+  `~/.m2/repository/dev/ancaria/coderpack/`. It reports a skip when neither
+  location contains both jars, so the Rust build itself does not require a JDK.
+- `launcher` builds its `protocol` and `coderpack` siblings from source when
+  they are available. Otherwise it downloads the releases pinned in
+  `launcher/.dependencies`, currently `protocol=0.1.0` and `coderpack=0.1.0`.
+  The downloaded files are `protocol.exe`, `api.jar`, `zygote.jar`, and
+  `agent.zip`. The zip already contains the generated address table. Run
+  `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
+- The pending local `idea` source resolves the scaffolder as
+  `dev.ancaria.coderpack:templates`. Its
+  `settings.gradle.kts` includes a sibling `../build/gradle` as a composite
+  build when present. Without that sibling, dependency resolution uses Maven
+  Local or Maven Central. Its prepared workflow checks out `build` outside the
+  sibling location, publishes the required artifacts to Maven Local, and is
+  designed to test repository-based resolution once the project has a remote.
+- `build`, `mappings`, and `research` read no sibling checkout. `mods` resolves
+  the plugin and API through Maven. Until the first releases are available, its
+  CI checks out `build` and `coderpack` and publishes them to Maven Local.
+- `launcher` ships no mods in its payload. At run time, players choose mods from
+  a visible SRML repository. The default is `mods`.
+
+## Cross-repository build order
+
+Rebuild a cross-repository change in dependency order:
+
+0. When the scaffolder or a template changed and `idea` cannot use the sibling
+   composite build, run `cd gradle && ./gradlew publishToMavenLocal` in `build`.
+1. In `mappings`, run `python mappings.generator.py`, then
+   `python mappings.generator.py --check`. This produces `mappings.json`.
+2. In `coderpack`, run `python tools/addr.py` to regenerate
+   `agent/src/gen/addr.js`. Run `python tools/hooksafe.py` as well for every new
+   hooked row.
+3. In `coderpack`, run `./gradlew build`. The jars are written to
+   `api/build/libs/api-*.jar` and `zygote/build/libs/zygote-*.jar`. CI packages
+   the generated agent separately as the release asset `agent.zip`.
+4. In `protocol`, run `cargo build --release` to produce
+   `target/release/protocol.exe`.
+5. In `launcher`, run `pwsh tools/build.ps1`. It rebuilds and stages the sibling
+   outputs, reruns address generation, and produces
+   `dist/Sacred Mod Loader.exe`.
+
+Never skip registry or address-table generation. A stale `addr.js` can place a
+hook at the wrong address and leave it silent. Address generation may use its
+documented download fallback when no `mappings` sibling exists.
+
+## Releases
+
+The publishing workflows use repository-owned versions:
+
+- `coderpack` and `build` read `gradle.properties`.
+- `protocol` reads `Cargo.toml`.
+- `launcher` reads `.version`.
+- `idea` reads `pluginVersion` from `gradle.properties`.
+- Each mod has its own version and release tag in the form
+  `<id>-v<version>`.
+
+On `master`, CI publishes a version only when its release tag does not already
+exist, then creates that tag as the release record. A version change does not
+ship unless the workflow reaches its publishing step successfully.
+
+For a change that crosses the loader release chain, land and verify
+`mappings` first, then release any changed `coderpack` and `protocol`
+artifacts. Update `launcher/.dependencies` to those released versions before
+releasing `launcher`. The launcher downloads `coderpack` and `protocol`
+independently, so neither release depends on the other unless the change itself
+requires coordinated versions.
+
+For a toolchain change, release a changed `coderpack` API before a `build`
+release or generated project that names that artifact version. Release `build`
+before releasing mods that require its new plugin or linter. Mod releases then
+remain independent and use `<id>-v<version>` tags.
+
+The pending `idea` source cannot publish until it has its own remote and the
+Marketplace credentials are configured. Its workflow is prepared to publish
+the same plugin zip to the JetBrains Marketplace and a GitHub release. Once
+that release path exists, release `build` first when the scaffolder changed,
+then raise `pluginVersion` in `idea`.
+
+## Rules
+
+- Commit in the repository that owns the changed file. Changes inside a
+  submodule belong to that repository’s history and remote. Changes to
+  root-owned files such as this guide, the root READMEs, `.gitmodules`, or
+  `ancaria.code-workspace` belong to the root repository. The local `idea`
+  source is pending extraction into its own repository. Do not claim or run a
+  release from it until that remote exists.
+- Do not move or rename a project directory. Sibling resolution uses these
+  directory names. A move can silently switch a build to downloaded artifacts.
+- Do not copy files between repositories to avoid rebuilding. Generate
+  `mappings.json`, `agent/src/gen/addr.js`, and
+  `launcher/install/payload/` with their owning commands.
+- Never type a game address directly into code. Every game address must come
+  from a row in `mappings`. A wrong RVA may produce no exception and a hook
+  that never fires.
+- Read `mappings/CLAUDE.md` before changing any address. Read the owning
+  repository’s `CLAUDE.md` before changing its code.
+
+## Gotchas
+
+- If the game runs elevated, the host, launcher, and every attaching probe in
+  `research` must also run elevated. A permissions mismatch can look like an
+  endless wait for a process the tool can already see.
+- The pending `idea` source is the only component that consumes another
+  component’s Kotlin implementation. Both its New Project dialog and
+  `coderpack new` use
+  `dev.ancaria.coderpack:templates`. Do not create a second copy of those
+  templates.
+- The root repository has no CI. Five component repositories have
+  `.github/workflows/build.yml`: `build`, `coderpack`, `protocol`, `launcher`,
+  and `mods`. The pending `idea` source also contains a workflow, but it cannot
+  run as that project’s CI until the separate repository exists. `mappings`
+  and `research` have no workflow, so run their checks manually.
+- `launcher` CI deliberately uses the download path without sibling checkouts.
+  This tests an isolated launcher clone on every push. Exercise the from-source
+  path locally when changing how sibling outputs are built or staged.
+- A source build of `launcher` with a `coderpack` sibling does not require a
+  `mappings` sibling. `tools/build.ps1` passes `-Mappings` only when that path
+  contains `mappings.json`. Otherwise `tools/addr.py` uses its normal fallback
+  chain. `-Coderpack none` needs no mappings checkout.
+- `launcher/tools/install.ps1` reads the game path from the uncommitted
+  `launcher/.local.settings` file. A valid entry looks like
+  `sacred=D:\SteamLibrary\steamapps\common\Sacred Gold`. The script is expected
+  to throw when this file is absent on a fresh checkout.
