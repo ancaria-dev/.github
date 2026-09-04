@@ -22,6 +22,27 @@
             "idea": true
         },
         "git.detectSubmodules": true,
-        "git.openRepositoryInParentFolders": "always"
+        "git.openRepositoryInParentFolders": "always",
+        "java.compile.nullAnalysis.mode": "automatic"
+    },
+    "extensions": {
+        // Each folder already carries its own .vscode/extensions.json, which VS
+        // Code aggregates automatically in a multi-root workspace. This list is
+        // the same set, unioned, so the recommendation prompt still fires when
+        // Cursor opens this .code-workspace file directly and does not merge
+        // per-folder recommendations on its own.
+        "recommendations": [
+            "editorconfig.editorconfig",
+            "redhat.java",
+            "vscjava.vscode-java-dependency",
+            "vscjava.vscode-gradle",
+            "fwcd.kotlin",
+            "rust-lang.rust-analyzer",
+            "tamasfe.even-better-toml",
+            "golang.go",
+            "ms-vscode.powershell",
+            "ms-python.python",
+            "ms-python.vscode-pylance"
+        ]
     }
 }
