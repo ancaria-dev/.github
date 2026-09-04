@@ -215,8 +215,8 @@ modification is the base for the mods here — every address in `mappings`
 targets that exact `pureHD.exe` build.
 
 Thanks to the community that still keeps taking this 2004 game apart, even
-though the modern games industry long ago wrote it off. The author has played
-Path of Exile, Path of Exile 2, Last Epoch, and Titan Quest since — none of
+though the modern games industry long ago wrote it off. I've played Path of
+Exile, Path of Exile 2, Last Epoch, and Titan Quest since — none of
 them are it: not the atmosphere, not the vibe, not the same carefree, casual,
 and well-crafted game Sacred was. Games like it will never be made again, but
 it stays in the heart regardless.

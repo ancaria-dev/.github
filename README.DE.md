@@ -236,7 +236,7 @@ diesen `pureHD.exe`-Build.
 
 Danke an die Community, die dieses Spiel von 2004 immer noch auseinandernimmt,
 obwohl die moderne Spieleindustrie solchen Spielen längst den Tod vorherbestimmt
-hat. Der Autor hat seitdem Path of Exile, Path of Exile 2, Last Epoch und Titan
+hat. Ich habe seitdem Path of Exile, Path of Exile 2, Last Epoch und Titan
 Quest gespielt – keines davon ist es: nicht die Atmosphäre, nicht der Vibe,
 nicht die unbeschwerte, lässige und zugleich durchdachte Machart, die Sacred
 hatte. Solche Spiele wird es nie wieder geben, aber im Herzen bleibt es
