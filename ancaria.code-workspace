@@ -1,0 +1,27 @@
+{
+    "folders": [
+        { "name": "workspace", "path": "." },
+        { "name": "mappings", "path": "mappings" },
+        { "name": "research", "path": "research" },
+        { "name": "coderpack", "path": "coderpack" },
+        { "name": "protocol", "path": "protocol" },
+        { "name": "launcher", "path": "launcher" },
+        { "name": "build", "path": "build" },
+        { "name": "mods", "path": "mods" },
+        { "name": "idea", "path": "idea" }
+    ],
+    "settings": {
+        "files.exclude": {
+            "mappings": true,
+            "research": true,
+            "coderpack": true,
+            "protocol": true,
+            "launcher": true,
+            "build": true,
+            "mods": true,
+            "idea": true
+        },
+        "git.detectSubmodules": true,
+        "git.openRepositoryInParentFolders": "always"
+    }
+}
