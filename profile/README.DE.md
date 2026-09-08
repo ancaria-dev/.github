@@ -52,6 +52,29 @@ Plugin ist ein achtes geplant, dessen eigener Remote noch nicht angelegt wurde.
 | [`mods`](https://github.com/ancaria-dev/mods) | Das offizielle Mod-Repository mit vier Mods und dem Index, den der Launcher standardmäßig liest. |
 | [`idea`](https://github.com/ancaria-dev/idea) | Das Plugin "Sacred Mod Development" für IntelliJ IDEA mit Projektassistent, Run-Konfiguration, Randsymbolen und Einstellungsseite. Das Repository existiert, ist aber noch leer. |
 
+### Wie die Repositories voneinander abhängen
+
+```mermaid
+graph LR
+    mappings --> coderpack
+    coderpack -.->|E2E-Test| protocol
+    coderpack --> launcher
+    protocol --> launcher
+    mappings -.->|optional| launcher
+    build --> mods
+    coderpack --> mods
+    build --> idea
+```
+
+Der Graph ist zyklenfrei. Eine gestrichelte Kante ist optional oder nur für
+Tests. `build` hängt bewusst nicht von `coderpack` ab: Linter und Vorlagen
+nutzen einen eigenen API-Stub statt einer echten Maven-Abhängigkeit, wodurch
+der Graph zyklenfrei bleibt, obwohl die CI von `coderpack` `build` und
+`launcher` auscheckt, um eine API-Contract-Konstante mit deren Quellcode
+abzugleichen -- das ist ein Lesezugriff für eine Prüfung, keine
+Veröffentlichungsabhängigkeit. `research` steht nicht im Graphen: nichts
+hängt davon ab, und es veröffentlicht selbst nichts.
+
 ## Für Spieler
 
 1. `Sacred Mod Loader.exe` aus den
@@ -125,7 +148,7 @@ rootProject.name = "double-gold"
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.1.0"
+    id("dev.ancaria.coderpack") version "0.99.0"
 }
 
 version = "1.0.0"
@@ -134,7 +157,7 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.1.0"
+    apiVersion = "0.99.0"
     author("you")
 }
 ```
@@ -171,12 +194,14 @@ der Mod das Delta noch ändern. Weitere Ereignistypen liegen im Paket
 ### Bauen
 
 Jedes Repository lässt sich einzeln bauen. `coderpack` lädt `mappings.json` in
-der Revision, die in `.mappings-ref` steht. Der Launcher verwendet ohne
-benachbarte Checkouts die in `.dependencies` festgelegten Releases. Ein
-Mod-Build bezieht Plugin und API aus Maven Local oder Maven Central. Bis zu den
-ersten Releases müssen die Artefakte aus `build` und `coderpack` in Maven Local
-liegen. Es genügt daher, das Repository zu klonen, an dem gearbeitet werden
-soll:
+der Revision, die in `.mappings-ref` steht. Für GitHub-Releases eines anderen
+Repositories -- keine Maven-Koordinate, die ein Build-Tool ohnehin versioniert
+-- pflegen `launcher` und `mods` je eine `dependencies.json` mit einer exakt
+gepinnten Version, nie "latest": ein schlechtes Release woanders soll den
+eigenen Build nicht unangekündigt brechen können, und ein benachbarter
+Checkout gewinnt trotzdem immer gegen den Pin. `mods` und `idea` beziehen
+Plugin und API über das Gradle Plugin Portal und Maven Central. Es genügt
+daher, das Repository zu klonen, an dem gearbeitet werden soll:
 
 ```
 git clone https://github.com/ancaria-dev/coderpack.git
@@ -199,12 +224,12 @@ Was dabei jeweils herauskommt:
 | Repository | Womit gebaut | Was herauskommt |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, aus der die übrigen Komponenten ihre Adressen beziehen |
-| `coderpack` | `gradlew build` | `api-0.1.0.jar` für Mod-Builds und `zygote-0.1.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.99.0.jar` für Mod-Builds und `zygote-0.99.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, der Host zwischen Spiel und JVM |
-| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.1.0.zip` mit dem Kommandozeilenwerkzeug |
+| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.99.0.zip` mit dem Kommandozeilenwerkzeug |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host, JAR-Dateien und Agent |
 | `mods` | `gradlew assembleSacredMod` | vier vom Linter geprüfte JAR-Dateien. `coderpack index` aktualisiert `sacred.mods.repository.json` separat |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.1.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
 
 `research` erzeugt kein auslieferbares Artefakt. Dort liegen die Skripte und
 Notizen, mit denen einzelne Fragen zum Spiel untersucht wurden.
