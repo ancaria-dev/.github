@@ -183,14 +183,26 @@ The publishing workflows use repository-owned versions:
 - Each mod has its own version and release tag in the form
   `<id>-v<version>`.
 
+Every repository above except `mods` also has `tools/version.ps1`. Run it with
+no argument to print that repository's current version, or with a new one
+(`pwsh tools/version.ps1 0.99.1`) to write it everywhere that repository
+repeats the number by hand -- a Gradle property, a Cargo manifest, a Javadoc
+comment, a README example -- in one pass instead of hunting for each spot.
+`mods/tools/version.ps1` is the same idea applied to four mods at once: it
+refuses to bump them unless all four already agree, since that is the only
+case where "the same number everywhere" still makes sense. None of these
+scripts touch `dependencies.json` or a version-catalog entry that pins
+*another* repository's release -- raising this repository's own version says
+nothing about those, and bumping them is a separate, deliberate step.
+
 On `master`, CI publishes a version only when its release tag does not already
 exist, then creates that tag as the release record. A version change does not
 ship unless the workflow reaches its publishing step successfully.
 
 For a change that crosses the loader release chain, land and verify
 `mappings` first, then release any changed `coderpack` and `protocol`
-artifacts. Update `launcher/.dependencies` to those released versions before
-releasing `launcher`. The launcher downloads `coderpack` and `protocol`
+artifacts. Update `launcher/dependencies.json` to those released versions
+before releasing `launcher`. The launcher downloads `coderpack` and `protocol`
 independently, so neither release depends on the other unless the change itself
 requires coordinated versions.
 
