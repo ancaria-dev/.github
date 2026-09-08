@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+
+  "_comment_org_default": "This repository is ancaria-dev/.github. It is both the org-wide fallback Renovate uses for a repository with no config of its own, and the shared preset every component repository extends explicitly as [\"github>ancaria-dev/.github:renovate\"], so this is the one place to define the dependencies.json custom manager instead of copying it into every consumer.",
+
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Cross-repository GitHub Release artifacts pinned in dependencies.json (launcher, mods, and every scaffolded SRML mod repository). Never resolved from Maven or npm, so neither Dependabot nor Renovate's built-in managers see them without this.",
+      "fileMatch": ["(^|/)dependencies\\.json$"],
+      "matchStrings": [
+        "\"path\"\\s*:\\s*\"(?<depName>[^\"]+)\"[^}]*\"version\"\\s*:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    }
+  ],
+
+  "packageRules": [
+    {
+      "description": "dependencies.json entries tag their releases v<version>, but the file stores the bare version -- match that shape everywhere the custom manager applies.",
+      "matchDatasources": ["github-releases"],
+      "matchFileNames": ["**/dependencies.json"],
+      "versioning": "semver-coerced"
+    }
+  ]
+}
