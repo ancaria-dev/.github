@@ -120,29 +120,40 @@ Each repository can be developed without cloning the complete workspace.
   location contains both jars, so the Rust build itself does not require a JDK.
 - `launcher` builds its `protocol` and `coderpack` siblings from source when
   they are available. Otherwise it downloads the releases pinned in
-  `launcher/.dependencies`, currently `protocol=0.1.0` and `coderpack=0.1.0`.
-  The downloaded files are `protocol.exe`, `api.jar`, `zygote.jar`, and
-  `agent.zip`. The zip already contains the generated address table. Run
+  `launcher/dependencies.json`, currently `protocol` and `coderpack` at
+  `0.99.0`. The downloaded files are `protocol.exe`, `api.jar`, `zygote.jar`,
+  and `agent.zip`. The zip already contains the generated address table. Run
   `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
-- `idea` resolves the scaffolder as
-  `dev.ancaria.coderpack:templates`. Its
-  `settings.gradle.kts` includes a sibling `../build/gradle` as a composite
-  build when present. Without that sibling, dependency resolution uses Maven
-  Local or Maven Central. Its prepared workflow checks out `build` outside the
-  sibling location, publishes the required artifacts to Maven Local, and is
-  designed to test repository-based resolution once `idea` has been pushed.
-- `build`, `mappings`, and `research` read no sibling checkout. `mods` resolves
-  the plugin and API through Maven. Until the first releases are available, its
-  CI checks out `build` and `coderpack` and publishes them to Maven Local.
+- `idea` resolves the scaffolder as `dev.ancaria.coderpack:templates` from
+  Maven Central, like any other dependency. Run `publishToMavenLocal` in
+  `build` to test an unreleased template change; `mavenLocal()` is checked
+  first in `idea/build.gradle.kts` and overrides the released artifact when
+  present.
+- `build`, `mappings`, and `research` read no sibling checkout. `mods`
+  resolves the plugin and the API through the Gradle Plugin Portal and Maven
+  Central, and downloads the `coderpack` command line from the `ancaria-dev/build`
+  release pinned in `mods/dependencies.json` for `coderpack index --check`.
 - `launcher` ships no mods in its payload. At run time, players choose mods from
   a visible SRML repository. The default is `mods`.
+
+A repository that needs a GitHub Release asset from another repository -- not
+a Maven coordinate, which a build tool already versions -- pins it in a
+`dependencies.json` at its root: `[{ "path": "ancaria-dev/<repo>", "version":
+"<version, no v prefix>" }]`. `launcher` and `mods` both have one. Never
+download "latest": a CI step reads the pinned version and asks for that exact
+release tag, so a bad release elsewhere cannot break this repository's build
+on its own schedule, and a sibling checkout still always wins over the pin
+when one is present. This is the same file shape everywhere on purpose, so one
+Renovate custom manager (see this repository's `renovate.json`) can bump every
+repository's pins.
 
 ## Cross-repository build order
 
 Rebuild a cross-repository change in dependency order:
 
-0. When the scaffolder or a template changed and `idea` cannot use the sibling
-   composite build, run `cd gradle && ./gradlew publishToMavenLocal` in `build`.
+0. When the scaffolder or a template changed, run
+   `cd gradle && ./gradlew publishToMavenLocal` in `build` so `idea` and `mods`
+   pick it up locally ahead of a release.
 1. In `mappings`, run `python mappings.generator.py`, then
    `python mappings.generator.py --check`. This produces `mappings.json`.
 2. In `coderpack`, run `python tools/addr.py` to regenerate
