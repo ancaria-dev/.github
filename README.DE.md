@@ -243,6 +243,22 @@ Tag `v<Version>` noch nicht existiert, und legt dieses Tag anschließend an.
 Eine neue Versionsnummer löst damit den nächsten Release aus. Mods werden
 einzeln unter Tags der Form `<id>-v<Version>` veröffentlicht.
 
+### Versionen aktualisieren
+
+Die Versionsnummer steht nicht an einer Stelle. Sie verteilt sich auf
+`gradle.properties`, `Cargo.toml`, ein README, manchmal sogar auf einen
+Kommentar mitten im Code. Vergisst man eine davon, driftet der gebaute
+Release still von dem ab, was in der Doku steht.
+
+Jedes Repository mit einer Version hat auch `tools/version.ps1`. Ohne Argument
+gibt es die aktuelle Nummer aus. Mit einer neuen Nummer schreibt es sie an
+jeder Stelle in diesem Repository in einem Durchgang neu:
+
+```
+pwsh tools/version.ps1
+pwsh tools/version.ps1 0.99.1
+```
+
 ## Zum Schluss
 
 Ancaria begann als Proof of Concept. Verbindlichen Support gibt es nicht. Das
