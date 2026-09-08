@@ -30,3 +30,7 @@
 	path = idea
 	url = https://github.com/ancaria-dev/idea.git
 	branch = master
+[submodule "site"]
+	path = site
+	url = https://github.com/ancaria-dev/site.git
+	branch = master
