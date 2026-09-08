@@ -45,6 +45,28 @@ repository, but its separate remote has not been created yet.
 | [`mods`](https://github.com/ancaria-dev/mods) | The default SRML mod repository and the source for four mods. |
 | [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. The repository exists but is still empty. |
 
+### How the repositories depend on each other
+
+```mermaid
+graph LR
+    mappings --> coderpack
+    coderpack -.->|e2e test| protocol
+    coderpack --> launcher
+    protocol --> launcher
+    mappings -.->|optional| launcher
+    build --> mods
+    coderpack --> mods
+    build --> idea
+```
+
+No cycles. A dashed edge is optional or test-only. `build` deliberately does
+not depend on `coderpack`: the linter and the templates use their own API stub
+instead of a real Maven dependency, which keeps this graph acyclic even though
+`coderpack`'s CI checks out `build` and `launcher` to compare an API-contract
+constant against their source -- that is a source read for a check, not a
+publish-time dependency. `research` is not in the graph: nothing depends on
+it and it publishes nothing.
+
 ## For players
 
 1. Download `Sacred Mod Loader.exe` from the
@@ -112,7 +134,7 @@ required. Setting `apiVersion` adds `dev.ancaria.coderpack:api` as a
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.1.0"
+    id("dev.ancaria.coderpack") version "0.99.0"
 }
 
 version = "1.0.0"
@@ -121,7 +143,7 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.1.0"
+    apiVersion = "0.99.0"
     author("you")
 }
 ```
@@ -160,9 +182,12 @@ delta changes the amount the game writes. Other event classes are in
 
 The repositories are designed to build independently. `coderpack` downloads
 `mappings.json` at the revision in `.mappings-ref` when no local registry is
-available. The launcher downloads the releases pinned in `.dependencies` when
-the `protocol` and `coderpack` checkouts are absent. Mod builds resolve the
-Gradle plugin and Java API from Maven Local or Maven Central.
+available. For GitHub releases of another repository -- not a Maven
+coordinate, which a build tool already versions -- `launcher` and `mods` each
+keep a `dependencies.json` pinning an exact version, never "latest", so a bad
+release elsewhere cannot break the build unannounced; a sibling checkout still
+wins over the pin when one is present. `mods` and `idea` resolve the Gradle
+plugin and Java API from the Gradle Plugin Portal and Maven Central.
 
 Clone only the repository you want to change:
 
@@ -186,12 +211,12 @@ What each one produces:
 | Repository | Built with | What comes out |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, the address registry consumed by the agent build |
-| `coderpack` | `gradlew build` | `api-0.1.0.jar` and `zygote-0.1.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
+| `coderpack` | `gradlew build` | `api-0.99.0.jar` and `zygote-0.99.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host |
-| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.1.0.zip` distribution |
+| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.99.0.zip` distribution |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host, jars, and agent embedded |
 | `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.1.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
 
 `research` has no build output. It records the scripts, probes, and notes used
 to identify game behavior. Every hook address comes from `mappings`, whose rows
