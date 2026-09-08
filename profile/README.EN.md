@@ -227,6 +227,22 @@ matching `v<version>` tag does not exist, then creates that tag. Releasing a new
 version therefore requires changing the repository's version first. Mod
 releases are published one at a time under tags of the form `<id>-v<version>`.
 
+### Updating versions
+
+The version number does not live in one file. It is scattered across
+`gradle.properties`, `Cargo.toml`, a README, sometimes a comment sitting in
+plain view in the code. Miss one of those spots and the built release quietly
+drifts from what the docs say.
+
+Every repository that has a version also has `tools/version.ps1`. Run it with
+no argument and it prints the current one. Give it a new one and it rewrites
+every spot in that repository in one pass:
+
+```
+pwsh tools/version.ps1
+pwsh tools/version.ps1 0.99.1
+```
+
 The project began as a proof of concept and does not promise support.
 
 ## References
