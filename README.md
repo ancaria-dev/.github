@@ -46,6 +46,28 @@ Sacred вышла в 2004 году без инструментов для мод
 | [`mods`](https://github.com/ancaria-dev/mods) | Официальный реестр модов и четыре мода. Лаунчер подключает этот реестр по умолчанию. |
 | [`idea`](https://github.com/ancaria-dev/idea) | Плагин для IntelliJ IDEA с мастером нового проекта, конфигурацией запуска Sacred, значками на полях и настройкой папки игры. Репозиторий создан, но пока пуст. |
 
+### Зависимости между репозиториями
+
+```mermaid
+graph LR
+    mappings --> coderpack
+    coderpack -.->|e2e-тест| protocol
+    coderpack --> launcher
+    protocol --> launcher
+    mappings -.->|опционально| launcher
+    build --> mods
+    coderpack --> mods
+    build --> idea
+```
+
+Граф без циклов. Пунктир — необязательная или тестовая зависимость. `build`
+намеренно не зависит от `coderpack`: линтер и шаблоны используют собственную
+заглушку API вместо реальной Maven-зависимости, поэтому граф остаётся
+ациклическим даже с учётом того, что CI `coderpack` сверяет номер API-контракта
+с исходниками `build` и `launcher` — это чтение исходников для проверки, а не
+зависимость публикации. `research` в граф не входит: от него никто не зависит,
+и сам он ничего не публикует.
+
 ## Игроку
 
 1. Скачайте `Sacred Mod Loader.exe` из
@@ -113,7 +135,7 @@ rootProject.name = "double-gold"
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.1.0"
+    id("dev.ancaria.coderpack") version "0.99.0"
 }
 
 version = "1.0.0"
@@ -122,7 +144,7 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.1.0"
+    apiVersion = "0.99.0"
     author("you")
 }
 ```
@@ -158,11 +180,13 @@ public final class DoubleGold implements SacredMod {
 ### Сборка
 
 Репозитории рассчитаны на отдельную сборку. `coderpack` скачивает
-`mappings.json` на ревизии, указанной в `.mappings-ref`, а лаунчер загружает
-релизы, закреплённые в `.dependencies`. Сборка мода получает плагин и API из
-Maven. До первых релизов для `mods` нужны локально опубликованные артефакты из
-`build` и `coderpack`. Для работы над одним компонентом клонируйте его
-репозиторий:
+`mappings.json` на ревизии, указанной в `.mappings-ref`. Для GitHub-релизов
+других репозиториев (не Maven-координат) `launcher` и `mods` держат в корне
+`dependencies.json` — пин точной версии, а не «последний релиз», так что
+чужой плохой релиз не ломает сборку без ведома автора; при наличии
+сиблинг-чекаута он всё равно побеждает. `mods` и `idea` получают плагин и API
+через Gradle Plugin Portal и Maven Central. Для работы над одним компонентом
+клонируйте его репозиторий:
 
 ```
 git clone https://github.com/ancaria-dev/coderpack.git
@@ -180,12 +204,12 @@ git clone https://github.com/ancaria-dev/coderpack.git
 | Репозиторий | Чем собирается | Что на выходе |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, из которого остальные компоненты берут адреса |
-| `coderpack` | `gradlew build` | `api-0.1.0.jar` для компиляции модов и `zygote-0.1.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.99.0.jar` для компиляции модов и `zygote-0.99.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM |
-| `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.1.0.zip` с командной утилитой |
+| `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.99.0.zip` с командной утилитой |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом, jar-файлами и агентом |
 | `mods` | `gradlew assembleSacredMod` | Четыре jar-файла, проверенные линтером. `coderpack index` отдельно обновляет `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.1.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
 
 У `research` нет общей команды сборки. В репозитории лежат отдельные скрипты
 для конкретных исследовательских задач.
