@@ -8,7 +8,8 @@
         { "name": "launcher", "path": "launcher" },
         { "name": "build", "path": "build" },
         { "name": "mods", "path": "mods" },
-        { "name": "idea", "path": "idea" }
+        { "name": "idea", "path": "idea" },
+        { "name": "site", "path": "site" }
     ],
     "settings": {
         "files.exclude": {
@@ -19,7 +20,8 @@
             "launcher": true,
             "build": true,
             "mods": true,
-            "idea": true
+            "idea": true,
+            "site": true
         },
         "git.detectSubmodules": true,
         "git.openRepositoryInParentFolders": "always",
@@ -42,7 +44,8 @@
             "golang.go",
             "ms-vscode.powershell",
             "ms-python.python",
-            "ms-python.vscode-pylance"
+            "ms-python.vscode-pylance",
+            "biomejs.biome"
         ]
     }
 }
