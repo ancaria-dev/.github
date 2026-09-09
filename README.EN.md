@@ -63,7 +63,7 @@ No cycles. A dashed edge is optional or test-only. `build` deliberately does
 not depend on `coderpack`: the linter and the templates use their own API stub
 instead of a real Maven dependency, which keeps this graph acyclic even though
 `coderpack`'s CI checks out `build` and `launcher` to compare an API-contract
-constant against their source -- that is a source read for a check, not a
+constant against their source: that is a source read for a check, not a
 publish-time dependency. `research` is not in the graph: nothing depends on
 it and it publishes nothing.
 
@@ -182,10 +182,10 @@ delta changes the amount the game writes. Other event classes are in
 
 The repositories are designed to build independently. `coderpack` downloads
 `mappings.json` at the revision in `.mappings-ref` when no local registry is
-available. For GitHub releases of another repository -- not a Maven
-coordinate, which a build tool already versions -- `launcher` and `mods` each
+available. For GitHub releases of another repository (not a Maven
+coordinate, which a build tool already versions) `launcher` and `mods` each
 keep a `dependencies.json` pinning an exact version, never "latest", so a bad
-release elsewhere cannot break the build unannounced; a sibling checkout still
+release elsewhere cannot break the build unannounced. A sibling checkout still
 wins over the pin when one is present. `mods` and `idea` resolve the Gradle
 plugin and Java API from the Gradle Plugin Portal and Maven Central.
 
@@ -217,7 +217,7 @@ What each one produces:
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host, jars, and agent embedded |
 | `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
 | `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
-| `site` | `pnpm build` | A `dist/` directory. On `master`, CI deploys it to Cloudflare; this repository publishes no release |
+| `site` | `pnpm build` | A `dist/` directory. On `master`, CI deploys it to Cloudflare, and this repository publishes no release |
 
 `research` has no build output. It records the scripts, probes, and notes used
 to identify game behavior. Every hook address comes from `mappings`, whose rows

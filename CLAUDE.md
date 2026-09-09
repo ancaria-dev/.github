@@ -63,7 +63,7 @@ multiplayer features, DRM bypass, game executable, or redistributed game files.
 The project has nine component repositories at
 `https://github.com/ancaria-dev/<name>.git`, all included here as submodules,
 including `idea`, the source for the IntelliJ IDEA plugin. Its remote exists
-but is still empty; a clone taken before `idea/` is pushed gets an empty
+but is still empty. A clone taken before `idea/` is pushed gets an empty
 checkout for it.
 
 | Directory | Owns |
@@ -97,7 +97,7 @@ The root repository and all nine submodules use `master`. Each entry in
 `.gitmodules` pins `branch = master`.
 
 `idea` is pushed last in the publish order. A recursive clone taken before
-that push gets an empty checkout for it; run
+that push gets an empty checkout for it. Run
 `git submodule update --remote idea` again once it has commits.
 
 A full workspace is optional. Side-by-side checkouts provide direct source
@@ -128,7 +128,7 @@ Each repository can be developed without cloning the complete workspace.
   `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
 - `idea` resolves the scaffolder as `dev.ancaria.coderpack:templates` from
   Maven Central, like any other dependency. Run `publishToMavenLocal` in
-  `build` to test an unreleased template change; `mavenLocal()` is checked
+  `build` to test an unreleased template change. `mavenLocal()` is checked
   first in `idea/build.gradle.kts` and overrides the released artifact when
   present.
 - `build`, `mappings`, and `research` read no sibling checkout. `mods`
@@ -138,8 +138,8 @@ Each repository can be developed without cloning the complete workspace.
 - `launcher` ships no mods in its payload. At run time, players choose mods from
   a visible SRML repository. The default is `mods`.
 
-A repository that needs a GitHub Release asset from another repository -- not
-a Maven coordinate, which a build tool already versions -- pins it in a
+A repository that needs a GitHub Release asset from another repository (not
+a Maven coordinate, which a build tool already versions) pins it in a
 `dependencies.json` at its root: `[{ "path": "ancaria-dev/<repo>", "version":
 "<version, no v prefix>" }]`. `launcher` and `mods` both have one. Never
 download "latest": a CI step reads the pinned version and asks for that exact
@@ -188,13 +188,13 @@ The publishing workflows use repository-owned versions:
 Every repository above except `mods` also has `tools/version.ps1`. Run it with
 no argument to print that repository's current version, or with a new one
 (`pwsh tools/version.ps1 0.99.1`) to write it everywhere that repository
-repeats the number by hand -- a Gradle property, a Cargo manifest, a Javadoc
-comment, a README example -- in one pass instead of hunting for each spot.
+repeats the number by hand (a Gradle property, a Cargo manifest, a Javadoc
+comment, a README example) in one pass instead of hunting for each spot.
 `mods/tools/version.ps1` is the same idea applied to four mods at once: it
 refuses to bump them unless all four already agree, since that is the only
 case where "the same number everywhere" still makes sense. None of these
 scripts touch `dependencies.json` or a version-catalog entry that pins
-*another* repository's release -- raising this repository's own version says
+*another* repository's release: raising this repository's own version says
 nothing about those, and bumping them is a separate, deliberate step.
 
 On `master`, CI publishes a version only when its release tag does not already
@@ -228,7 +228,7 @@ Marketplace and a GitHub release. Once that first push has happened, release
   repository and remote now. Do not claim or run a release from it until it
   has been pushed and its CI has run once.
 - Write the commit subject and nothing else. Imperative, sentence case, no
-  full stop, and as short as the change allows -- ten words is the ceiling,
+  full stop, and as short as the change allows, ten words is the ceiling,
   not the target. Name the one thing that changed: `Register the site
   submodule`, `Add tools/version.ps1`, `Point CLAUDE.md at dependencies.json`,
   `Sync the root German README with the version-update section`. No body, no
@@ -268,7 +268,7 @@ Marketplace and a GitHub release. Once that first push has happened, release
   suite anywhere that only runs by hand. `mappings` is the exception in shape:
   it has no tests, only `mappings.generator.py --check`, and its workflow runs
   that. `hooksafe.py` is the one guard CI cannot run, because it reads bytes
-  out of the installed game -- run it locally for every new hooked row.
+  out of the installed game, so run it locally for every new hooked row.
 - `launcher` CI deliberately uses the download path without sibling checkouts.
   This tests an isolated launcher clone on every push. Exercise the from-source
   path locally when changing how sibling outputs are built or staged.

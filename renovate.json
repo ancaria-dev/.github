@@ -19,7 +19,7 @@
 
   "packageRules": [
     {
-      "description": "dependencies.json entries tag their releases v<version>, but the file stores the bare version -- match that shape everywhere the custom manager applies.",
+      "description": "dependencies.json entries tag their releases v<version>, but the file stores the bare version, so match that shape everywhere the custom manager applies.",
       "matchDatasources": ["github-releases"],
       "matchFileNames": ["**/dependencies.json"],
       "versioning": "semver-coerced"

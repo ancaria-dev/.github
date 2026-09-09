@@ -9,13 +9,13 @@
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
 
-    // ancaria.code-workspace is 4-space JSONC; Markdown lists are 2.
+    // ancaria.code-workspace is 4-space JSONC, Markdown lists are 2.
     "[markdown]": {
         "editor.tabSize": 2
     },
 
     // Only bites when this directory is opened as a plain folder rather than
-    // through ancaria.code-workspace -- that file already hides the submodules
+    // through ancaria.code-workspace: that file already hides the submodules
     // from this root. A plain-folder open sees all seven, and an unfiltered
     // search across them is mostly Cargo and Gradle output.
     // `**/*/build` rather than `**/build`: the latter would also match the
