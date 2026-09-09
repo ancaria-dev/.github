@@ -236,6 +236,13 @@ version Central does not have yet generates projects that do not resolve. Releas
 before releasing mods that require its new plugin or linter. Mod releases then
 remain independent and use `<id>-v<version>` tags.
 
+A Central upload is not a Central release. `publishingType` is `USER_MANAGED`
+in both publishing repositories, so an artifact only becomes resolvable once
+somebody presses Publish in the portal. `idea` resolves
+`dev.ancaria.coderpack:templates` from Central, so raising its pin has to wait
+for that press: pushed earlier, its CI fails on a dependency that does not exist
+yet. Check with a request for the POM before pushing the pin.
+
 `idea` cannot publish until it has been pushed and its CI has run once. Its
 workflow is prepared to publish the same plugin zip to the JetBrains
 Marketplace and a GitHub release. Once that first push has happened, release
