@@ -13,7 +13,7 @@
 # ancaria
 
 Sacred was released for Windows in 2004, followed by the Sacred Gold compilation
-in 2005. ancaria adds a mod loader to that 32-bit game. Mods are written in Java
+in 2005. ancaria adds a mod loader to that 32-bit game. Mods are written in Java or Kotlin
 against an event API. The loader does not patch files in the game folder. Its
 hooks exist only in the running process and disappear when the game closes.
 
@@ -37,7 +37,7 @@ the other repositories, all nine of them Git submodules. The front page at
 |---|---|
 | [`mappings`](https://github.com/ancaria-dev/mappings) | The address registry for `pureHD.exe` 2.0.2.118. Each row records a virtual address, a relative virtual address, and its confidence level. |
 | [`research`](https://github.com/ancaria-dev/research) | Disassembly scripts, live probes, and research notes. None of it ships to players. |
-| [`coderpack`](https://github.com/ancaria-dev/coderpack) | The Frida agent, the Java API used by mods, the JVM-side loader, and the tools that generate the agent's address table. |
+| [`coderpack`](https://github.com/ancaria-dev/coderpack) | The Frida agent, the Java API used by mods, its Kotlin extensions, the JVM-side loader, and the tools that generate the agent's address table. |
 | [`protocol`](https://github.com/ancaria-dev/protocol) | The wire protocol and the Rust host that connects the game process to the JVM. |
 | [`launcher`](https://github.com/ancaria-dev/launcher) | The Windows executable that installs the loader, manages mods, and starts the game. |
 | [`build`](https://github.com/ancaria-dev/build) | The Gradle plugin, mod linter, and `coderpack` project scaffolder. The Maven directory currently contains design notes only. |
@@ -178,6 +178,13 @@ The `Gold` event arrives before the game applies the change, so replacing its
 delta changes the amount the game writes. Other event classes are in
 `dev.ancaria.coderpack.api.event`.
 
+A Kotlin mod can say the same thing through
+`dev.ancaria.coderpack:api-kotlin`, which every project from
+`coderpack new --language kotlin` already depends on. The event becomes a type
+argument and a rewritable field becomes a `var`, so the listener above is
+`on<Gold> { if (!it.spending) it.delta *= 2 }`. It forwards to the Java API and
+adds nothing to it, so a Kotlin mod that ignores it works the same way.
+
 ### Building it
 
 The repositories are designed to build independently. `coderpack` downloads
@@ -211,7 +218,7 @@ What each one produces:
 | Repository | Built with | What comes out |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, the address registry consumed by the agent build |
-| `coderpack` | `gradlew build` | `api-0.99.0.jar` and `zygote-0.99.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
+| `coderpack` | `gradlew build` | `api-0.99.0.jar`, `api-kotlin-0.99.0.jar`, and `zygote-0.99.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host, with the agent minified inside it |
 | `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.99.0.zip` distribution |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host and jars embedded |

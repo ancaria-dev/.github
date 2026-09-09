@@ -13,7 +13,7 @@
 # ancaria
 
 Sacred вышла в 2004 году без инструментов для модификации, а сборник Sacred Gold
-появился в 2005-м. Теперь моды можно писать на Java через API событий.
+появился в 2005-м. Теперь моды можно писать на Java или Kotlin через API событий.
 Файлы игры на диске при этом не меняются: хуки существуют только в памяти и
 исчезают после завершения процесса.
 
@@ -40,7 +40,7 @@ git-сабмодулями. Сама страница [ancaria.dev](https://anca
 |---|---|
 | [`mappings`](https://github.com/ancaria-dev/mappings) | Реестр адресов для `pureHD.exe` 2.0.2.118: VA, RVA и уровень достоверности каждой записи. |
 | [`research`](https://github.com/ancaria-dev/research) | Скрипты дизассемблирования, пробы и заметки о том, как находились адреса и поведение игры. Эти материалы не входят в сборку для игроков. |
-| [`coderpack`](https://github.com/ancaria-dev/coderpack) | Frida-агент, Java API для компиляции модов и загрузчик на стороне JVM, который принимает события и передаёт их модам. |
+| [`coderpack`](https://github.com/ancaria-dev/coderpack) | Frida-агент, Java API для компиляции модов, его Kotlin-расширения и загрузчик на стороне JVM, который принимает события и передаёт их модам. |
 | [`protocol`](https://github.com/ancaria-dev/protocol) | Sacred Communication Protocol и Rust-хост, который передаёт сообщения между игрой и JVM. |
 | [`launcher`](https://github.com/ancaria-dev/launcher) | Один исполняемый файл для папки с игрой. В нём можно выбрать моды и запустить Sacred Gold. |
 | [`build`](https://github.com/ancaria-dev/build) | Инструменты сборки для авторов модов. Сейчас это Gradle-плагин. Поддержка Maven появится при необходимости. |
@@ -179,6 +179,14 @@ public final class DoubleGold implements SacredMod {
 попадает в игру. Остальные события находятся в пакете
 `dev.ancaria.coderpack.api.event`.
 
+На Kotlin то же самое пишется через `dev.ancaria.coderpack:api-kotlin`, который
+уже подключён в любом проекте из `coderpack new --language kotlin`. Событие
+задаётся параметром типа, а поле, которое разрешено переписать, объявлено как
+`var`, поэтому слушатель выше выглядит как
+`on<Gold> { if (!it.spending) it.delta *= 2 }`. Модуль лишь вызывает Java API и
+ничего к нему не добавляет, так что мод на Kotlin без него работает точно
+так же.
+
 ### Сборка
 
 Репозитории рассчитаны на отдельную сборку. `coderpack` скачивает
@@ -206,7 +214,7 @@ git clone https://github.com/ancaria-dev/coderpack.git
 | Репозиторий | Чем собирается | Что на выходе |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, из которого остальные компоненты берут адреса |
-| `coderpack` | `gradlew build` | `api-0.99.0.jar` для компиляции модов и `zygote-0.99.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.99.0.jar` и `api-kotlin-0.99.0.jar` для компиляции модов и `zygote-0.99.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM, со встроенным внутрь минифицированным агентом |
 | `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.99.0.zip` с командной утилитой |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом и jar-файлами |

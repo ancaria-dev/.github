@@ -14,7 +14,7 @@
 
 Sacred erschien 2004 für Windows, die Zusammenstellung Sacred Gold folgte 2005.
 Ancaria rüstet eine Mod-Schnittstelle für dieses 32-Bit-Spiel nach. Mods werden
-in Java gegen eine Event-API geschrieben. Die Dateien der Spielinstallation
+in Java oder Kotlin gegen eine Event-API geschrieben. Die Dateien der Spielinstallation
 bleiben unangetastet, denn sämtliche Hooks liegen nur im Arbeitsspeicher und
 verschwinden mit dem Spielprozess.
 
@@ -45,7 +45,7 @@ aus `site`.
 |---|---|
 | [`mappings`](https://github.com/ancaria-dev/mappings) | Das Adressregister für `pureHD.exe` 2.0.2.118. Zu jeder bestätigten Adresse gehören VA, RVA und eine Angabe zur Verlässlichkeit. |
 | [`research`](https://github.com/ancaria-dev/research) | Skripte zur Disassemblierung, Laufzeitanalysen und die dabei entstandenen Notizen. Nichts daraus wird an Spieler ausgeliefert. |
-| [`coderpack`](https://github.com/ancaria-dev/coderpack) | Der Frida-Agent, die Java-API für Mods und der JVM-seitige Loader, der Ereignisse an die Mods verteilt. |
+| [`coderpack`](https://github.com/ancaria-dev/coderpack) | Der Frida-Agent, die Java-API für Mods, ihre Kotlin-Erweiterungen und der JVM-seitige Loader, der Ereignisse an die Mods verteilt. |
 | [`protocol`](https://github.com/ancaria-dev/protocol) | Das Sacred Communication Protocol und der Rust-Host, der Nachrichten zwischen Spiel und JVM überträgt. |
 | [`launcher`](https://github.com/ancaria-dev/launcher) | Die einzelne EXE-Datei für den Spielordner. Im Launcher werden Mods ausgewählt und das Spiel gestartet. |
 | [`build`](https://github.com/ancaria-dev/build) | Build-Unterstützung für Mod-Autoren. Derzeit gibt es ein Gradle-Plugin. Für Maven liegt ein Entwurf vor. |
@@ -192,6 +192,13 @@ Annotation unterstützt außerdem `priority` und `ignoreCancelled`. Das
 der Mod das Delta noch ändern. Weitere Ereignistypen liegen im Paket
 `dev.ancaria.coderpack.api.event`.
 
+In Kotlin steht dasselbe über `dev.ancaria.coderpack:api-kotlin` zur Verfügung,
+das jedes Projekt aus `coderpack new --language kotlin` bereits einbindet. Das
+Ereignis wird zum Typargument, und ein überschreibbares Feld wird zum `var`, so
+dass der Listener von oben `on<Gold> { if (!it.spending) it.delta *= 2 }` lautet.
+Das Modul ruft nur die Java-API auf und fügt ihr nichts hinzu; ein Kotlin-Mod
+ohne es funktioniert genauso.
+
 ### Bauen
 
 Jedes Repository lässt sich einzeln bauen. `coderpack` lädt `mappings.json` in
@@ -225,7 +232,7 @@ Was dabei jeweils herauskommt:
 | Repository | Womit gebaut | Was herauskommt |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, aus der die übrigen Komponenten ihre Adressen beziehen |
-| `coderpack` | `gradlew build` | `api-0.99.0.jar` für Mod-Builds und `zygote-0.99.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.99.0.jar` und `api-kotlin-0.99.0.jar` für Mod-Builds und `zygote-0.99.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, der Host zwischen Spiel und JVM, mit dem minifizierten Agenten darin |
 | `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.99.0.zip` mit dem Kommandozeilenwerkzeug |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host und JAR-Dateien |
