@@ -207,9 +207,9 @@ git clone https://github.com/ancaria-dev/coderpack.git
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, из которого остальные компоненты берут адреса |
 | `coderpack` | `gradlew build` | `api-0.99.0.jar` для компиляции модов и `zygote-0.99.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
-| `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM |
+| `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM, со встроенным внутрь минифицированным агентом |
 | `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.99.0.zip` с командной утилитой |
-| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом, jar-файлами и агентом |
+| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом и jar-файлами |
 | `mods` | `gradlew assembleSacredMod` | Четыре jar-файла, проверенные линтером. `coderpack index` отдельно обновляет `sacred.mods.repository.json` |
 | `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
 | `site` | `pnpm build` | Каталог `dist/`. На `master` CI сам выкладывает его в Cloudflare, релиза у репозитория нет |

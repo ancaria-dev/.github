@@ -42,8 +42,11 @@ marks an ask overdue only after its age exceeds the deadline. The fallback
 scheduler and poster-loop delay. Keep cancelable handlers short and never
 describe 250 ms as a strict worst-case block time.
 
-After installation, `<Sacred Gold>/launcher/` contains the host, jars, agent,
-and `VERSION` file. Mods live in `<Sacred Gold>/mods`.
+After installation, `<Sacred Gold>/launcher/` contains the host, jars, and
+`VERSION` file. Mods live in `<Sacred Gold>/mods`. There is no agent folder: the
+agent's JavaScript is minified into `protocol.exe` when the host is built, and
+the injected script is assembled in memory. An upgrade deletes the folder older
+versions left there.
 
 The launcher looks for a JDK 21 or newer in `<Sacred Gold>/launcher/java`,
 then `JAVA_HOME`, then `PATH`. It continues past an older JDK and uses the
@@ -71,7 +74,7 @@ checkout for it.
 | `mappings` | The address registry for `pureHD.exe` 2.0.2.118, including each VA, RVA, and confidence level. |
 | `research` | Disassembly scripts, live probes, and research notes. Nothing here ships to players. |
 | `coderpack` | The Frida agent in `agent/src`, the Java API in `api`, the JVM-side loader in `zygote`, and the Python tools that read the address registry. |
-| `protocol` | The wire protocol and Rust host. It builds `protocol.exe`. |
+| `protocol` | The wire protocol and Rust host. It builds `protocol.exe`, with the agent minified inside it. |
 | `launcher` | The Go executable placed in the game folder. It embeds everything it installs. |
 | `build` | The Gradle plugin, mod linter, and `coderpack` project scaffolder. `build/maven` currently contains design notes only. |
 | `mods` | The default SRML repository, its index, and the source for four mods. |
@@ -102,7 +105,7 @@ that push gets an empty checkout for it. Run
 
 A full workspace is optional. Side-by-side checkouts provide direct source
 coupling. `coderpack` can generate its address table from `../mappings`,
-`protocol` can bundle the agent from `../coderpack`, and `launcher` can build
+`protocol` can embed the agent from `../coderpack`, and `launcher` can build
 and stage both sibling projects without waiting for published artifacts.
 
 ## Independent builds
@@ -115,16 +118,23 @@ Each repository can be developed without cloning the complete workspace.
   Downloads are cached under `build/mappings/`. The ref comes from
   `coderpack/.mappings-ref`, currently `master`. Use a tag or commit there when
   the build must be reproducible. See `coderpack/tools/paths.py`.
-- `protocol` tests its bundler against `protocol/tests/agent/`, a fixture owned
-  by that repository. Its end-to-end test searches for the newest coderpack
-  `api` and `zygote` jars in `../coderpack/*/build/libs` and then in
+- `protocol` builds the agent into `protocol.exe`. It takes the JavaScript from
+  `$PROTOCOL_AGENT`, then the sibling `../coderpack/agent/src`, then the
+  `agent.zip` of the coderpack release pinned in `protocol/dependencies.json`,
+  cached under `protocol/build/agent/`. A lone clone therefore builds, because
+  the release asset carries the generated address table a fresh coderpack
+  checkout has not got. Its folder-reading bundler tests use
+  `protocol/tests/agent/`, a fixture owned by that repository. Its end-to-end
+  test searches for the newest coderpack `api` and `zygote` jars in
+  `../coderpack/*/build/libs` and then in
   `~/.m2/repository/dev/ancaria/coderpack/`. It reports a skip when neither
   location contains both jars, so the Rust build itself does not require a JDK.
 - `launcher` builds its `protocol` and `coderpack` siblings from source when
-  they are available. Otherwise it downloads the releases pinned in
+  they are available, coderpack first so the address table exists before the
+  host is built around it. Otherwise it downloads the releases pinned in
   `launcher/dependencies.json`, currently `protocol` and `coderpack` at
-  `0.99.0`. The downloaded files are `protocol.exe`, `api.jar`, `zygote.jar`,
-  and `agent.zip`. The zip already contains the generated address table. Run
+  `0.99.0`. The downloaded files are `protocol.exe`, `api.jar`, and
+  `zygote.jar`; the agent is inside the first of them. Run
   `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
 - `idea` resolves the scaffolder as `dev.ancaria.coderpack:templates` from
   Maven Central, like any other dependency. Run `publishToMavenLocal` in
@@ -141,7 +151,8 @@ Each repository can be developed without cloning the complete workspace.
 A repository that needs a GitHub Release asset from another repository (not
 a Maven coordinate, which a build tool already versions) pins it in a
 `dependencies.json` at its root: `[{ "path": "ancaria-dev/<repo>", "version":
-"<version, no v prefix>" }]`. `launcher` and `mods` both have one. Never
+"<version, no v prefix>" }]`. `protocol`, `launcher`, and `mods` all have one.
+Never
 download "latest": a CI step reads the pinned version and asks for that exact
 release tag, so a bad release elsewhere cannot break this repository's build
 on its own schedule, and a sibling checkout still always wins over the pin
@@ -165,7 +176,8 @@ Rebuild a cross-repository change in dependency order:
    `api/build/libs/api-*.jar` and `zygote/build/libs/zygote-*.jar`. CI packages
    the generated agent separately as the release asset `agent.zip`.
 4. In `protocol`, run `cargo build --release` to produce
-   `target/release/protocol.exe`.
+   `target/release/protocol.exe`. Step 2 has to have run first: the build
+   minifies `agent/src`, `gen/addr.js` included, into that executable.
 5. In `launcher`, run `pwsh tools/build.ps1`. It rebuilds and stages the sibling
    outputs, reruns address generation, and produces
    `dist/Sacred Mod Loader.exe`.
@@ -202,11 +214,18 @@ exist, then creates that tag as the release record. A version change does not
 ship unless the workflow reaches its publishing step successfully.
 
 For a change that crosses the loader release chain, land and verify
-`mappings` first, then release any changed `coderpack` and `protocol`
-artifacts. Update `launcher/dependencies.json` to those released versions
-before releasing `launcher`. The launcher downloads `coderpack` and `protocol`
-independently, so neither release depends on the other unless the change itself
-requires coordinated versions.
+`mappings` first, then release any changed `coderpack` artifacts, raise
+`protocol/dependencies.json` to that coderpack release if the agent changed,
+and release `protocol`. Update `launcher/dependencies.json` to those released
+versions before releasing `launcher`.
+
+The chain is one repository longer than it was for an agent change. The
+launcher no longer ships the agent, so a coderpack release alone changes
+nothing in a player's game: the JavaScript reaches them inside `protocol.exe`.
+A workspace build takes the sibling agent and shows the change at once, which
+is the case that can hide a missing release. The launcher still downloads
+`coderpack` and `protocol` independently, so neither release waits on the other
+unless the change itself requires coordinated versions.
 
 For a toolchain change, release a changed `coderpack` API before a `build`
 release or generated project that names that artifact version. Release `build`

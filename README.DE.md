@@ -226,9 +226,9 @@ Was dabei jeweils herauskommt:
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, aus der die übrigen Komponenten ihre Adressen beziehen |
 | `coderpack` | `gradlew build` | `api-0.99.0.jar` für Mod-Builds und `zygote-0.99.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
-| `protocol` | `cargo build --release` | `target/release/protocol.exe`, der Host zwischen Spiel und JVM |
+| `protocol` | `cargo build --release` | `target/release/protocol.exe`, der Host zwischen Spiel und JVM, mit dem minifizierten Agenten darin |
 | `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.99.0.zip` mit dem Kommandozeilenwerkzeug |
-| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host, JAR-Dateien und Agent |
+| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host und JAR-Dateien |
 | `mods` | `gradlew assembleSacredMod` | vier vom Linter geprüfte JAR-Dateien. `coderpack index` aktualisiert `sacred.mods.repository.json` separat |
 | `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
 | `site` | `pnpm build` | das Verzeichnis `dist/`. Auf `master` veröffentlicht die CI es bei Cloudflare; ein Release gibt es hier nicht |
