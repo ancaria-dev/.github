@@ -10,8 +10,8 @@ repository, `site`.
 ## Project architecture
 
 Sacred was released in 2004. The Sacred Gold compilation followed in 2005.
-ancaria is a mod loader for Sacred Gold. Mods are written in Java against an
-event API and loaded while the game is running.
+ancaria is a mod loader for Sacred Gold. Mods are written in Java or Kotlin
+against an event API and loaded while the game is running.
 
 Every address in the project targets `pureHD.exe` 2.0.2.118, a 32-bit community
 HD wrapper with image base `0x00400000`. Those addresses do not target the stock
@@ -32,7 +32,7 @@ not make its addresses safe.
                and routes frames in both directions
     agent      JavaScript inside the game that hooks the game’s instructions
     zygote     JVM-side loader that loads mod jars and dispatches events
-    mod        Java compiled against the coderpack API
+    mod        Java or Kotlin compiled against the coderpack API
 
 Observed events travel from agent to host to JVM asynchronously. A cancelable
 event travels as an `ASK` and stops the game thread while the mod decides. The
@@ -73,7 +73,7 @@ checkout for it.
 |---|---|
 | `mappings` | The address registry for `pureHD.exe` 2.0.2.118, including each VA, RVA, and confidence level. |
 | `research` | Disassembly scripts, live probes, and research notes. Nothing here ships to players. |
-| `coderpack` | The Frida agent in `agent/src`, the Java API in `api`, the JVM-side loader in `zygote`, and the Python tools that read the address registry. |
+| `coderpack` | The Frida agent in `agent/src`, the Java API in `api`, its Kotlin extensions in `api-kotlin`, the JVM-side loader in `zygote`, and the Python tools that read the address registry. |
 | `protocol` | The wire protocol and Rust host. It builds `protocol.exe`, with the agent minified inside it. |
 | `launcher` | The Go executable placed in the game folder. It embeds everything it installs. |
 | `build` | The Gradle plugin, mod linter, and `coderpack` project scaffolder. `build/maven` currently contains design notes only. |
@@ -173,8 +173,9 @@ Rebuild a cross-repository change in dependency order:
    `agent/src/gen/addr.js`. Run `python tools/hooksafe.py` as well for every new
    hooked row.
 3. In `coderpack`, run `./gradlew build`. The jars are written to
-   `api/build/libs/api-*.jar` and `zygote/build/libs/zygote-*.jar`. CI packages
-   the generated agent separately as the release asset `agent.zip`.
+   `api/build/libs/api-*.jar`, `api-kotlin/build/libs/api-kotlin-*.jar`, and
+   `zygote/build/libs/zygote-*.jar`. CI packages the generated agent separately
+   as the release asset `agent.zip`.
 4. In `protocol`, run `cargo build --release` to produce
    `target/release/protocol.exe`. Step 2 has to have run first: the build
    minifies `agent/src`, `gen/addr.js` included, into that executable.
@@ -228,7 +229,10 @@ is the case that can hide a missing release. The launcher still downloads
 unless the change itself requires coordinated versions.
 
 For a toolchain change, release a changed `coderpack` API before a `build`
-release or generated project that names that artifact version. Release `build`
+release or generated project that names that artifact version. `api-kotlin`
+shares that version and is named by every generated Kotlin project, so it is
+part of the same step: a `build` release whose Kotlin templates ask for a
+version Central does not have yet generates projects that do not resolve. Release `build`
 before releasing mods that require its new plugin or linter. Mod releases then
 remain independent and use `<id>-v<version>` tags.
 
