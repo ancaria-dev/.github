@@ -259,11 +259,16 @@ Marketplace and a GitHub release. Once that first push has happened, release
   implementation. Both its New Project dialog and `coderpack new` use
   `dev.ancaria.coderpack:templates`. Do not create a second copy of those
   templates.
-- The root repository has no CI. Six component repositories have
+- The root repository has no CI. Eight component repositories have
   `.github/workflows/build.yml`: `build`, `coderpack`, `protocol`, `launcher`,
-  `mods`, and `idea`. `idea`'s workflow cannot run as that project's CI until
-  it has been pushed. `mappings` and `research` have no workflow, so run their
-  checks manually.
+  `mods`, `idea`, `site`, and `mappings`. `idea`'s workflow cannot run as that
+  project's CI until it has been pushed. `research` has no workflow, and needs
+  none: nothing in it ships.
+- Each of those workflows runs that repository's own tests, so there is no
+  suite anywhere that only runs by hand. `mappings` is the exception in shape:
+  it has no tests, only `mappings.generator.py --check`, and its workflow runs
+  that. `hooksafe.py` is the one guard CI cannot run, because it reads bytes
+  out of the installed game -- run it locally for every new hooked row.
 - `launcher` CI deliberately uses the download path without sibling checkouts.
   This tests an isolated launcher clone on every push. Exercise the from-source
   path locally when changing how sibling outputs are built or staged.
