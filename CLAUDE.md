@@ -227,6 +227,18 @@ Marketplace and a GitHub release. Once that first push has happened, release
   `ancaria.code-workspace` belong to the root repository. `idea` has its own
   repository and remote now. Do not claim or run a release from it until it
   has been pushed and its CI has run once.
+- Write the commit subject and nothing else. Imperative, sentence case, no
+  full stop, and as short as the change allows -- ten words is the ceiling,
+  not the target. Name the one thing that changed: `Register the site
+  submodule`, `Add tools/version.ps1`, `Point CLAUDE.md at dependencies.json`,
+  `Sync the root German README with the version-update section`. No body, no
+  bullet list, and no trailer of any kind, `Co-Authored-By` included.
+- Commit as soon as a change is finished, and keep each commit to one change.
+  A new file and the edits that start using it are two commits. Files that
+  share nothing but the working tree they were found in do not share a commit
+  either.
+- Push only when I have asked for it. A finished commit is not permission to
+  push, and neither is a green build.
 - Do not move or rename a project directory. Sibling resolution uses these
   directory names. A move can silently switch a build to downloaded artifacts.
 - Do not copy files between repositories to avoid rebuilding. Generate
