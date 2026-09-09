@@ -34,12 +34,12 @@ Ancaria ist weder ein Mehrspieler-Cheat noch ein Crack oder eine Bezugsquelle
 für das Spiel. Ohne eine eigene, installierte Ausgabe von Sacred Gold
 funktioniert nichts davon.
 
-Dieses Repository enthält keinen Programmcode. Es dient als Startseite für
-[ancaria.dev](https://ancaria.dev) und als gemeinsame Arbeitskopie. Sieben
-Projekt-Repositories sind hier als Git-Submodule eingebunden. Für das IDEA-
-Plugin ist ein achtes geplant, dessen eigener Remote noch nicht angelegt wurde.
+Dieses Repository enthält keinen Programmcode. Es ist die gemeinsame
+Arbeitskopie, in der alle neun Projekt-Repositories als Git-Submodule
+eingebunden sind. Die Startseite [ancaria.dev](https://ancaria.dev) entsteht
+aus `site`.
 
-## Die acht Repositories
+## Die neun Repositories
 
 | Repository | Was drin ist |
 |---|---|
@@ -51,6 +51,7 @@ Plugin ist ein achtes geplant, dessen eigener Remote noch nicht angelegt wurde.
 | [`build`](https://github.com/ancaria-dev/build) | Build-Unterstützung für Mod-Autoren. Derzeit gibt es ein Gradle-Plugin. Für Maven liegt ein Entwurf vor. |
 | [`mods`](https://github.com/ancaria-dev/mods) | Das offizielle Mod-Repository mit vier Mods und dem Index, den der Launcher standardmäßig liest. |
 | [`idea`](https://github.com/ancaria-dev/idea) | Das Plugin "Sacred Mod Development" für IntelliJ IDEA mit Projektassistent, Run-Konfiguration, Randsymbolen und Einstellungsseite. Das Repository existiert, ist aber noch leer. |
+| [`site`](https://github.com/ancaria-dev/site) | Der Quelltext von [ancaria.dev](https://ancaria.dev): eine React- und Vite-Oberfläche ohne Backend. Die CI baut sie und veröffentlicht sie bei Cloudflare. |
 
 ### Wie die Repositories voneinander abhängen
 
@@ -213,11 +214,11 @@ Die gesamte Arbeitskopie lässt sich ebenfalls klonen:
 git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
 ```
 
-`ancaria.code-workspace` öffnet das Hauptverzeichnis und alle acht vorhandenen
-Projektordner gemeinsam in VS Code. Ein rekursiver Klon holt die sieben
-aktuellen Submodule. `idea` bleibt außen vor, bis das Projekt einen eigenen
-Remote hat und in `.gitmodules` steht. Für die einzelnen Builds ist die
-gemeinsame Arbeitskopie nicht erforderlich.
+`ancaria.code-workspace` öffnet das Hauptverzeichnis und alle neun vorhandenen
+Projektordner gemeinsam in VS Code. Ein rekursiver Klon holt alle neun
+Submodule; `idea` kommt dabei als leeres Verzeichnis an, solange dort noch
+nichts gepusht wurde. Für die einzelnen Builds ist die gemeinsame Arbeitskopie
+nicht erforderlich.
 
 Was dabei jeweils herauskommt:
 
@@ -230,6 +231,7 @@ Was dabei jeweils herauskommt:
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host, JAR-Dateien und Agent |
 | `mods` | `gradlew assembleSacredMod` | vier vom Linter geprüfte JAR-Dateien. `coderpack index` aktualisiert `sacred.mods.repository.json` separat |
 | `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
+| `site` | `pnpm build` | das Verzeichnis `dist/`. Auf `master` veröffentlicht die CI es bei Cloudflare; ein Release gibt es hier nicht |
 
 `research` erzeugt kein auslieferbares Artefakt. Dort liegen die Skripte und
 Notizen, mit denen einzelne Fragen zum Spiel untersucht wurden.

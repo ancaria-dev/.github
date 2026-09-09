@@ -27,12 +27,11 @@ while it waits for a reply. After 250 ms, the host answers `ok` for a slow mod.
 The project is for single-player use. It does not bypass DRM, provide the game,
 or redistribute game files. You need your own installed copy of Sacred Gold.
 
-This repository contains no application code. It is the front page for
-[ancaria.dev](https://ancaria.dev) and a workspace for the other repositories.
-Seven are Git submodules. The IntelliJ IDEA plugin is the planned eighth
-repository, but its separate remote has not been created yet.
+This repository contains no application code. It is the workspace that joins
+the other repositories, all nine of them Git submodules. The front page at
+[ancaria.dev](https://ancaria.dev) is built from `site`.
 
-## The eight repositories
+## The nine repositories
 
 | Repository | What it holds |
 |---|---|
@@ -44,6 +43,7 @@ repository, but its separate remote has not been created yet.
 | [`build`](https://github.com/ancaria-dev/build) | The Gradle plugin, mod linter, and `coderpack` project scaffolder. The Maven directory currently contains design notes only. |
 | [`mods`](https://github.com/ancaria-dev/mods) | The default SRML mod repository and the source for four mods. |
 | [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. The repository exists but is still empty. |
+| [`site`](https://github.com/ancaria-dev/site) | The source of [ancaria.dev](https://ancaria.dev): a React and Vite front end with no backend. CI builds it and ships it to Cloudflare. |
 
 ### How the repositories depend on each other
 
@@ -195,16 +195,16 @@ Clone only the repository you want to change:
 git clone https://github.com/ancaria-dev/coderpack.git
 ```
 
-For a side-by-side checkout, clone this repository with its seven submodules:
+For a side-by-side checkout, clone this repository with its nine submodules:
 
 ```
 git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
 ```
 
-The `ancaria.code-workspace` file opens the root and all eight project
+The `ancaria.code-workspace` file opens the root and all nine project
 directories in one VS Code window when they are present. A recursive clone gets
-the seven current submodules. It omits `idea` until that project has its own
-remote and is added to `.gitmodules`.
+all nine, though `idea` arrives as an empty directory until that project has
+been pushed for the first time.
 
 What each one produces:
 
@@ -217,6 +217,7 @@ What each one produces:
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host, jars, and agent embedded |
 | `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
 | `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
+| `site` | `pnpm build` | A `dist/` directory. On `master`, CI deploys it to Cloudflare; this repository publishes no release |
 
 `research` has no build output. It records the scripts, probes, and notes used
 to identify game behavior. Every hook address comes from `mappings`, whose rows

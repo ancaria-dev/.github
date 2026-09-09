@@ -2,9 +2,10 @@
 
 ## Repository purpose
 
-This is the organisation’s `.github` repository. It contains the
-[ancaria.dev](https://ancaria.dev) front page and the workspace files that join
-the project repositories. It contains no application code.
+This is the organisation’s `.github` repository. It holds the workspace
+files that join the project repositories and nothing else. It contains no
+application code. The [ancaria.dev](https://ancaria.dev) front page is its own
+repository, `site`.
 
 ## Project architecture
 
@@ -59,7 +60,7 @@ multiplayer features, DRM bypass, game executable, or redistributed game files.
 
 ## Repository ownership
 
-The project has eight component repositories at
+The project has nine component repositories at
 `https://github.com/ancaria-dev/<name>.git`, all included here as submodules,
 including `idea`, the source for the IntelliJ IDEA plugin. Its remote exists
 but is still empty; a clone taken before `idea/` is pushed gets an empty
@@ -75,8 +76,9 @@ checkout for it.
 | `build` | The Gradle plugin, mod linter, and `coderpack` project scaffolder. `build/maven` currently contains design notes only. |
 | `mods` | The default SRML repository, its index, and the source for four mods. |
 | `idea` | The IntelliJ IDEA plugin, including the New Project wizard, Run Sacred configuration, gutter icons, and loader settings. Its workflow is prepared for GitHub and JetBrains Marketplace publication. |
+| `site` | The ancaria.dev front end: React, Vite, and LESS modules, deployed to Cloudflare by its own CI. It reads no sibling checkout. |
 
-`ancaria.code-workspace` opens the workspace root and all eight project
+`ancaria.code-workspace` opens the workspace root and all nine project
 directories in one VS Code window. It hides those directories under the root so
 they do not appear twice in the file tree.
 
@@ -91,7 +93,7 @@ git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
 git submodule update --init --recursive     # if cloned without the flag
 ```
 
-The root repository and all eight submodules use `master`. Each entry in
+The root repository and all nine submodules use `master`. Each entry in
 `.gitmodules` pins `branch = master`.
 
 `idea` is pushed last in the publish order. A recursive clone taken before
