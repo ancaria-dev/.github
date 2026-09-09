@@ -134,7 +134,7 @@ required. Setting `apiVersion` adds `dev.ancaria.coderpack:api` as a
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.100.0"
+    id("dev.ancaria.coderpack") version "0.100.2"
 }
 
 version = "1.0.0"
@@ -220,10 +220,10 @@ What each one produces:
 | `mappings` | `python mappings.generator.py` | `mappings.json`, the address registry consumed by the agent build |
 | `coderpack` | `gradlew build` | `api-0.100.0.jar`, `api-kotlin-0.100.0.jar`, and `zygote-0.100.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host, with the agent minified inside it |
-| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.100.0.zip` distribution |
+| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.100.2.zip` distribution |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host and jars embedded |
 | `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.100.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.100.2.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
 | `site` | `pnpm build` | A `dist/` directory. On `master`, CI deploys it to Cloudflare, and this repository publishes no release |
 
 `research` has no build output. It records the scripts, probes, and notes used
