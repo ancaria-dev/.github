@@ -133,7 +133,7 @@ Each repository can be developed without cloning the complete workspace.
   they are available, coderpack first so the address table exists before the
   host is built around it. Otherwise it downloads the releases pinned in
   `launcher/dependencies.json`, currently `protocol` and `coderpack` at
-  `0.99.0`. The downloaded files are `protocol.exe`, `api.jar`, and
+  `0.101.0` and `0.102.0`. The downloaded files are `protocol.exe`, `api.jar`, and
   `zygote.jar`; the agent is inside the first of them. Run
   `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
 - `idea` resolves the scaffolder as `dev.ancaria.coderpack:templates` from
