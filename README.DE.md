@@ -51,7 +51,7 @@ aus `site`.
 | [`launcher`](https://github.com/ancaria-dev/launcher) | Die einzelne EXE-Datei für den Spielordner. Im Launcher werden Mods ausgewählt und das Spiel gestartet. |
 | [`build`](https://github.com/ancaria-dev/build) | Build-Unterstützung für Mod-Autoren. Derzeit gibt es ein Gradle-Plugin. Für Maven liegt ein Entwurf vor. |
 | [`mods`](https://github.com/ancaria-dev/mods) | Das offizielle Mod-Repository mit vier Mods und dem Index, den der Launcher standardmäßig liest. |
-| [`idea`](https://github.com/ancaria-dev/idea) | Das Plugin "Sacred Mod Development" für IntelliJ IDEA mit Projektassistent, Run-Konfiguration, Randsymbolen und Einstellungsseite. Das Repository existiert, ist aber noch leer. |
+| [`idea`](https://github.com/ancaria-dev/idea) | Das Plugin "Sacred Mod Development" für IntelliJ IDEA mit Projektassistent, Run-Konfiguration, Randsymbolen und Einstellungsseite. |
 | [`site`](https://github.com/ancaria-dev/site) | Der Quelltext von [ancaria.dev](https://ancaria.dev): eine React- und Vite-Oberfläche ohne Backend. Die CI baut sie und veröffentlicht sie bei Cloudflare. |
 
 ### Wie die Repositories voneinander abhängen
@@ -230,8 +230,7 @@ git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
 
 `ancaria.code-workspace` öffnet das Hauptverzeichnis und alle neun vorhandenen
 Projektordner gemeinsam in VS Code. Ein rekursiver Klon holt alle neun
-Submodule; `idea` kommt dabei als leeres Verzeichnis an, solange dort noch
-nichts gepusht wurde. Für die einzelnen Builds ist die gemeinsame Arbeitskopie
+Submodule. Für die einzelnen Builds ist die gemeinsame Arbeitskopie
 nicht erforderlich.
 
 Was dabei jeweils herauskommt:

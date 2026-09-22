@@ -46,7 +46,7 @@ git-сабмодулями. Сама страница [ancaria.dev](https://anca
 | [`launcher`](https://github.com/ancaria-dev/launcher) | Один исполняемый файл для папки с игрой. В нём можно выбрать моды и запустить Sacred Gold. |
 | [`build`](https://github.com/ancaria-dev/build) | Инструменты сборки для авторов модов. Сейчас это Gradle-плагин. Поддержка Maven появится при необходимости. |
 | [`mods`](https://github.com/ancaria-dev/mods) | Официальный реестр модов и четыре мода. Лаунчер подключает этот реестр по умолчанию. |
-| [`idea`](https://github.com/ancaria-dev/idea) | Плагин для IntelliJ IDEA с мастером нового проекта, конфигурацией запуска Sacred, значками на полях и настройкой папки игры. Репозиторий создан, но пока пуст. |
+| [`idea`](https://github.com/ancaria-dev/idea) | Плагин для IntelliJ IDEA с мастером нового проекта, конфигурацией запуска Sacred, значками на полях и настройкой папки игры. |
 | [`site`](https://github.com/ancaria-dev/site) | Исходники [ancaria.dev](https://ancaria.dev): React и Vite, без бэкенда. CI собирает страницу и выкладывает её в Cloudflare. |
 
 ### Зависимости между репозиториями
@@ -210,8 +210,7 @@ git clone https://github.com/ancaria-dev/coderpack.git
 
 Девять репозиториев можно получить вместе с этим через
 `--recurse-submodules`. Файл `ancaria.code-workspace` открывает папки в одном
-окне VS Code. Плагин `idea` в `.gitmodules` уже есть, но до первого пуша
-рекурсивный клон приносит для него пустой каталог. Совместный чекаут удобен
+окне VS Code. Совместный чекаут удобен
 для разработки, но после публикации зависимостей не требуется для отдельных
 сборок.
 

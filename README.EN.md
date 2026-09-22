@@ -43,7 +43,7 @@ the other repositories, all nine of them Git submodules. The front page at
 | [`launcher`](https://github.com/ancaria-dev/launcher) | The Windows executable that installs the loader, manages mods, and starts the game. |
 | [`build`](https://github.com/ancaria-dev/build) | The Gradle plugin, mod linter, and `coderpack` project scaffolder. The Maven directory currently contains design notes only. |
 | [`mods`](https://github.com/ancaria-dev/mods) | The default SRML mod repository and the source for four mods. |
-| [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. The repository exists but is still empty. |
+| [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. |
 | [`site`](https://github.com/ancaria-dev/site) | The source of [ancaria.dev](https://ancaria.dev): a React and Vite front end with no backend. CI builds it and ships it to Cloudflare. |
 
 ### How the repositories depend on each other
@@ -216,8 +216,7 @@ git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
 
 The `ancaria.code-workspace` file opens the root and all nine project
 directories in one VS Code window when they are present. A recursive clone gets
-all nine, though `idea` arrives as an empty directory until that project has
-been pushed for the first time.
+all nine.
 
 What each one produces:
 
