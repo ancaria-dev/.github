@@ -161,29 +161,34 @@ public final class DoubleGold implements SacredMod {
 
     @Override
     public void onLoad(Context context) {
-        context.events().on(Gold.class, e -> {
-            if (!e.spending()) e.delta(e.delta() * 2);
-        });
+        context.events().decide(Gold.class, e -> e.spending()
+                ? Gold.Mutation.none()
+                : Gold.Mutation.change(e.value() * 2));
     }
 }
 ```
 
 Run `gradlew assembleSacredMod`. The resulting mod doubles positive gold
-changes and leaves spending unchanged. `on` registers a lambda listener and
-returns a `Handle` that can unregister it. You can instead annotate a public
-one-parameter method with `@Subscribe`, which also supports `priority` and
-`ignoreCancelled`.
+changes and leaves spending unchanged. `decide` registers a lambda that answers
+with a `Gold.Mutation`, and `on` registers one that only observes. Both return
+a `Handle` that can unregister it. You can instead annotate a public
+one-parameter method with `@Subscribe`. It returns `void` to observe or the
+event's `Mutation` to decide, and the annotation also supports `priority` and
+`ignoreVetoed`.
 
-The `Gold` event arrives before the game applies the change, so replacing its
-delta changes the amount the game writes. Other event classes are in
-`dev.ancaria.coderpack.api.event`.
+The `Gold` event arrives before the game applies the change. Events are
+read-only, so the returned mutation is what changes the amount the game
+writes. `value()` is the delta with earlier listeners folded in. Other event
+classes are in `dev.ancaria.coderpack.api.event`.
 
 A Kotlin mod can say the same thing through
 `dev.ancaria.coderpack:api-kotlin`, which every project from
 `coderpack new --language kotlin` already depends on. The event becomes a type
-argument and a rewritable field becomes a `var`, so the listener above is
-`on<Gold> { if (!it.spending) it.delta *= 2 }`. It forwards to the Java API and
-adds nothing to it, so a Kotlin mod that ignores it works the same way.
+argument and a getter becomes a property, so the listener above is
+`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`.
+`mutate` exists only for an event that can be decided. The module forwards to
+the Java API and adds nothing to it, so a Kotlin mod that ignores it works the
+same way.
 
 ### Building it
 

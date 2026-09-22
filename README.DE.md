@@ -176,26 +176,32 @@ public final class DoubleGold implements SacredMod {
 
     @Override
     public void onLoad(Context context) {
-        context.events().on(Gold.class, e -> {
-            if (!e.spending()) e.delta(e.delta() * 2);
-        });
+        context.events().decide(Gold.class, e -> e.spending()
+                ? Gold.Mutation.none()
+                : Gold.Mutation.change(e.value() * 2));
     }
 }
 ```
 
 Nach `gradlew assembleSacredMod` wird aufgesammeltes Gold verdoppelt. Die
-Methode `on` registriert den Listener als Lambda und liefert ein `Handle`
-zurück, über das er später wieder abgemeldet werden kann. Alternativ markiert
-`@Subscribe` eine öffentliche Methode mit genau einem Ereignisparameter. Die
-Annotation unterstützt außerdem `priority` und `ignoreCancelled`. Das
-`Gold`-Ereignis wird ausgelöst, bevor das Spiel den Wert schreibt. Deshalb kann
-der Mod das Delta noch ändern. Weitere Ereignistypen liegen im Paket
+Methode `decide` registriert ein Lambda, das mit einer `Gold.Mutation`
+antwortet, `on` dagegen einen Listener, der nur beobachtet. Beide liefern ein
+`Handle` zurück, über das sich der Listener später wieder abmelden lässt.
+Alternativ markiert `@Subscribe` eine öffentliche Methode mit genau einem
+Ereignisparameter. Sie gibt `void` zurück, um zu beobachten, oder die
+`Mutation` ihres Ereignisses, um zu entscheiden. Die Annotation unterstützt
+außerdem `priority` und `ignoreVetoed`. Das `Gold`-Ereignis wird ausgelöst,
+bevor das Spiel den Wert schreibt. Ereignisse sind nur lesbar, deshalb ändert
+erst die zurückgegebene Mutation das Delta. `value()` enthält das Delta mit den
+Änderungen früherer Listener. Weitere Ereignistypen liegen im Paket
 `dev.ancaria.coderpack.api.event`.
 
 In Kotlin steht dasselbe über `dev.ancaria.coderpack:api-kotlin` zur Verfügung,
 das jedes Projekt aus `coderpack new --language kotlin` bereits einbindet. Das
-Ereignis wird zum Typargument, und ein überschreibbares Feld wird zum `var`, so
-dass der Listener von oben `on<Gold> { if (!it.spending) it.delta *= 2 }` lautet.
+Ereignis wird zum Typargument, und ein Getter wird zur Eigenschaft, so dass der
+Listener von oben
+`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`
+lautet. `mutate` gibt es nur bei Ereignissen, über die entschieden werden kann.
 Das Modul ruft nur die Java-API auf und fügt ihr nichts hinzu; ein Kotlin-Mod
 ohne es funktioniert genauso.
 
