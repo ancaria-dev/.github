@@ -35,12 +35,11 @@ Ancaria ist weder ein Mehrspieler-Cheat noch ein Crack oder eine Bezugsquelle
 für das Spiel. Ohne eine eigene, installierte Ausgabe von Sacred Gold
 funktioniert nichts davon.
 
-Dieses Repository enthält keinen Programmcode. Es ist die gemeinsame
-Arbeitskopie, in der alle neun Projekt-Repositories als Git-Submodule
-eingebunden sind. Die Startseite [ancaria.dev](https://ancaria.dev) entsteht
-aus `site`.
+Dieses Repository enthält keinen Programmcode. Es fasst die Gruppe der
+Projekt-Repositories zu einer gemeinsamen Arbeitskopie zusammen. Die Startseite
+[ancaria.dev](https://ancaria.dev) entsteht aus `site`.
 
-## Die neun Repositories
+## Die Repositories
 
 | Repository | Was drin ist |
 |---|---|
@@ -59,7 +58,7 @@ aus `site`.
 ```mermaid
 graph LR
     mappings --> coderpack
-    coderpack -.->|E2E-Test| protocol
+    coderpack -->|Agent| protocol
     coderpack --> launcher
     protocol --> launcher
     mappings -.->|optional| launcher
@@ -74,8 +73,8 @@ nutzen einen eigenen API-Stub statt einer echten Maven-Abhängigkeit, wodurch
 der Graph zyklenfrei bleibt, obwohl die CI von `coderpack` `build` und
 `launcher` auscheckt, um eine API-Contract-Konstante mit deren Quellcode
 abzugleichen -- das ist ein Lesezugriff für eine Prüfung, keine
-Veröffentlichungsabhängigkeit. `research` steht nicht im Graphen: nichts
-hängt davon ab, und es veröffentlicht selbst nichts.
+Veröffentlichungsabhängigkeit. `research` und `site` stehen nicht im Graphen:
+nichts hängt von ihnen ab, und sie hängen von nichts ab.
 
 ## Für Spieler
 
@@ -104,7 +103,13 @@ Token.
 
 ### Einen Mod schreiben
 
-Das Kommandozeilenwerkzeug `coderpack` liegt jedem
+Am schnellsten geht es in IntelliJ IDEA. Das Plugin
+[Sacred Mod Development](https://plugins.jetbrains.com/plugin/34165-sacred-mod-development) aus dem
+JetBrains Marketplace bringt den Assistenten File → New → Project → Sacred Mod,
+eine Run-Sacred-Konfiguration, die den Mod baut und das Spiel damit startet,
+und Randsymbole an Einstiegspunkt und Listenern.
+
+Ohne IDE legt das Kommandozeilenwerkzeug dasselbe Projekt an. Das Werkzeug `coderpack` liegt jedem
 [Release von `build`](https://github.com/ancaria-dev/build/releases) als
 ZIP-Datei bei. Nach dem Entpacken wird dessen Verzeichnis `bin` in den `PATH`
 aufgenommen. Danach genügt:
@@ -117,9 +122,9 @@ In `my-mod/` entsteht ein vollständiges Projekt mit Gradle Wrapper,
 ausgefülltem `sacred { }`-Block und einem funktionierenden Listener. Der Befehl
 `gradlew assembleSacredMod` baut daraus die JAR-Datei für den Loader. Paket,
 Anzeigename, Autor und weitere Angaben lassen sich über Optionen festlegen.
-`coderpack help` zeigt die verfügbaren Parameter. Bis zum ersten Release wird
-das Werkzeug aus einem Checkout von `build` im Verzeichnis `gradle` mit
-`./gradlew :templates:installDist` erzeugt.
+`coderpack help` zeigt die verfügbaren Parameter. Für unveröffentlichte
+Änderungen wird das Werkzeug aus einem Checkout von `build` im Verzeichnis
+`gradle` mit `./gradlew :templates:installDist` erzeugt.
 
 Ein Mod-Projekt lässt sich ebenso von Hand anlegen. Für ein gewöhnliches
 Gradle-Projekt in IntelliJ IDEA reichen drei Dateien.
@@ -211,27 +216,33 @@ ohne es funktioniert genauso.
 Jedes Repository lässt sich einzeln bauen. `coderpack` lädt `mappings.json` in
 der Revision, die in `.mappings-ref` steht. Für GitHub-Releases eines anderen
 Repositories -- keine Maven-Koordinate, die ein Build-Tool ohnehin versioniert
--- pflegen `launcher` und `mods` je eine `dependencies.json` mit einer exakt
+-- pflegen `protocol`, `launcher` und `mods` je eine `dependencies.json` mit einer exakt
 gepinnten Version, nie "latest": ein schlechtes Release woanders soll den
 eigenen Build nicht unangekündigt brechen können, und ein benachbarter
-Checkout gewinnt trotzdem immer gegen den Pin. `mods` und `idea` beziehen
-Plugin und API über das Gradle Plugin Portal und Maven Central. Es genügt
+Checkout gewinnt trotzdem immer gegen den Pin. `mods` bezieht Plugin und API
+über das Gradle Plugin Portal und Maven Central, `idea` die Vorlagen von
+`coderpack` über Maven Central. Es genügt
 daher, das Repository zu klonen, an dem gearbeitet werden soll:
 
 ```
 git clone https://github.com/ancaria-dev/coderpack.git
 ```
 
-Die gesamte Arbeitskopie lässt sich ebenfalls klonen:
+Für die gesamte Arbeitskopie wird dieses Repository geklont und die übrige
+Gruppe darin, jedes Repository unter seinem eigenen Namen. Die Builds finden
+ihre Nachbarn über genau diese Namen:
 
 ```
-git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
+git clone https://github.com/ancaria-dev/.github.git ancaria
+cd ancaria
+for repo in mappings research coderpack protocol launcher build mods idea site; do
+    git clone https://github.com/ancaria-dev/$repo.git
+done
 ```
 
-`ancaria.code-workspace` öffnet das Hauptverzeichnis und alle neun vorhandenen
-Projektordner gemeinsam in VS Code. Ein rekursiver Klon holt alle neun
-Submodule. Für die einzelnen Builds ist die gemeinsame Arbeitskopie
-nicht erforderlich.
+`ancaria.code-workspace` öffnet das Hauptverzeichnis und alle vorhandenen
+Projektordner gemeinsam in VS Code. Für die einzelnen Builds ist die
+gemeinsame Arbeitskopie nicht erforderlich.
 
 Was dabei jeweils herauskommt:
 

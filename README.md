@@ -31,9 +31,9 @@ Sacred вышла в 2004 году без инструментов для мод
 средств обхода DRM и функций для мультиплеера. Нужна собственная установленная
 копия игры.
 
-В этом репозитории нет кода. Это рабочая копия с девятью
-git-сабмодулями. Сама страница [ancaria.dev](https://ancaria.dev) собирается
-из репозитория `site`.
+В этом репозитории нет кода. Он объединяет группу репозиториев проекта в одну
+рабочую копию. Сама страница [ancaria.dev](https://ancaria.dev) собирается из
+репозитория `site`.
 
 ## Компоненты проекта
 
@@ -54,7 +54,7 @@ git-сабмодулями. Сама страница [ancaria.dev](https://anca
 ```mermaid
 graph LR
     mappings --> coderpack
-    coderpack -.->|e2e-тест| protocol
+    coderpack -->|агент| protocol
     coderpack --> launcher
     protocol --> launcher
     mappings -.->|опционально| launcher
@@ -68,8 +68,8 @@ graph LR
 заглушку API вместо реальной Maven-зависимости, поэтому граф остаётся
 ациклическим даже с учётом того, что CI `coderpack` сверяет номер API-контракта
 с исходниками `build` и `launcher` — это чтение исходников для проверки, а не
-зависимость публикации. `research` в граф не входит: от него никто не зависит,
-и сам он ничего не публикует.
+зависимость публикации. `research` и `site` в граф не входят: от них никто не
+зависит, и сами они ни от кого не зависят.
 
 ## Игроку
 
@@ -94,7 +94,14 @@ graph LR
 
 ### Свой мод
 
-Командная утилита `coderpack` входит в zip-архив каждого релиза
+Проще всего начать в IntelliJ IDEA. Плагин
+[Sacred Mod Development](https://plugins.jetbrains.com/plugin/34165-sacred-mod-development) из JetBrains
+Marketplace добавляет мастер File → New → Project → Sacred Mod, конфигурацию
+Run Sacred, которая собирает мод и запускает с ним игру, и значки на полях у
+точки входа и слушателей.
+
+Без IDE тот же проект создаёт командная утилита `coderpack`. Она входит в
+zip-архив каждого релиза
 [build](https://github.com/ancaria-dev/build/releases). Распакуйте архив,
 добавьте `bin` в PATH и выполните:
 
@@ -105,9 +112,9 @@ coderpack new my-mod
 В `my-mod/` появится проект с Gradle Wrapper, заполненным блоком `sacred { }` и
 готовым слушателем. Команда `gradlew assembleSacredMod` собирает jar для
 загрузчика. Пакет, отображаемое имя, автора и другие параметры задают ключами,
-перечисленными в `coderpack help`. До первого релиза утилиту нужно собрать из
-чекаута `build`: запустите `./gradlew :templates:installDist` в каталоге
-`gradle`.
+перечисленными в `coderpack help`. Чтобы попробовать неопубликованные
+изменения, соберите утилиту из чекаута `build`: запустите
+`./gradlew :templates:installDist` в каталоге `gradle`.
 
 Проект можно создать вручную. Для обычного Gradle-проекта в IntelliJ IDEA
 достаточно трёх файлов.
@@ -197,22 +204,32 @@ Java API и ничего к нему не добавляет, так что мо
 
 Репозитории рассчитаны на отдельную сборку. `coderpack` скачивает
 `mappings.json` на ревизии, указанной в `.mappings-ref`. Для GitHub-релизов
-других репозиториев (не Maven-координат) `launcher` и `mods` держат в корне
+других репозиториев (не Maven-координат) `protocol`, `launcher` и `mods` держат в корне
 `dependencies.json` — пин точной версии, а не «последний релиз», так что
 чужой плохой релиз не ломает сборку без ведома автора; при наличии
-сиблинг-чекаута он всё равно побеждает. `mods` и `idea` получают плагин и API
-через Gradle Plugin Portal и Maven Central. Для работы над одним компонентом
+сиблинг-чекаута он всё равно побеждает. `mods` получает плагин и API через
+Gradle Plugin Portal и Maven Central, а `idea` берёт шаблоны `coderpack` из
+Maven Central. Для работы над одним компонентом
 клонируйте его репозиторий:
 
 ```
 git clone https://github.com/ancaria-dev/coderpack.git
 ```
 
-Девять репозиториев можно получить вместе с этим через
-`--recurse-submodules`. Файл `ancaria.code-workspace` открывает папки в одном
-окне VS Code. Совместный чекаут удобен
-для разработки, но после публикации зависимостей не требуется для отдельных
-сборок.
+Чтобы собрать всю группу рядом, клонируйте этот репозиторий, а внутрь него
+остальные под их собственными именами. Сборки находят соседей именно по этим
+именам:
+
+```
+git clone https://github.com/ancaria-dev/.github.git ancaria
+cd ancaria
+for repo in mappings research coderpack protocol launcher build mods idea site; do
+    git clone https://github.com/ancaria-dev/$repo.git
+done
+```
+
+Файл `ancaria.code-workspace` открывает все папки в одном окне VS Code.
+Совместный чекаут удобен для разработки, но для отдельных сборок не нужен.
 
 Результаты сборки:
 

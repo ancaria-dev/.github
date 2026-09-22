@@ -28,11 +28,11 @@ behalf, usually 250 to 375 ms after the ask, so keep such handlers short.
 The project is for single-player use. It does not bypass DRM, provide the game,
 or redistribute game files. You need your own installed copy of Sacred Gold.
 
-This repository contains no application code. It is the workspace that joins
-the other repositories, all nine of them Git submodules. The front page at
+This repository contains no application code. It joins the project's group
+of repositories into one workspace. The front page at
 [ancaria.dev](https://ancaria.dev) is built from `site`.
 
-## The nine repositories
+## The repositories
 
 | Repository | What it holds |
 |---|---|
@@ -51,7 +51,7 @@ the other repositories, all nine of them Git submodules. The front page at
 ```mermaid
 graph LR
     mappings --> coderpack
-    coderpack -.->|e2e test| protocol
+    coderpack -->|agent| protocol
     coderpack --> launcher
     protocol --> launcher
     mappings -.->|optional| launcher
@@ -65,8 +65,8 @@ not depend on `coderpack`: the linter and the templates use their own API stub
 instead of a real Maven dependency, which keeps this graph acyclic even though
 `coderpack`'s CI checks out `build` and `launcher` to compare an API-contract
 constant against their source: that is a source read for a check, not a
-publish-time dependency. `research` is not in the graph: nothing depends on
-it and it publishes nothing.
+publish-time dependency. `research` and `site` are not in the graph: nothing
+depends on them, and they depend on nothing.
 
 ## For players
 
@@ -90,7 +90,13 @@ repositories are supported when you provide a token.
 
 ### Writing a mod
 
-Each [build](https://github.com/ancaria-dev/build/releases) release includes the
+The quickest start is IntelliJ IDEA. The
+[Sacred Mod Development](https://plugins.jetbrains.com/plugin/34165-sacred-mod-development) plugin from
+the JetBrains Marketplace adds a File → New → Project → Sacred Mod wizard, a
+Run Sacred configuration that builds the mod and starts the game with it, and
+gutter icons on the entrypoint and its listeners.
+
+Without an IDE, the command line writes the same project. Each [build](https://github.com/ancaria-dev/build/releases) release includes the
 `coderpack` command-line distribution. Unpack it, add its `bin` directory to
 PATH, and create a project with:
 
@@ -104,8 +110,8 @@ The generated `my-mod/` project includes a Gradle wrapper, a configured
 `coderpack help` lists options for the package, display name, author, language,
 build DSL, and other project settings.
 
-Until the first release, build the command line from a local `build` checkout.
-Run `./gradlew :templates:installDist` from its `gradle` directory.
+To try unreleased changes, build the command line from a local `build`
+checkout. Run `./gradlew :templates:installDist` from its `gradle` directory.
 
 You can also create the Java project yourself. It needs three files.
 
@@ -196,11 +202,12 @@ same way.
 The repositories are designed to build independently. `coderpack` downloads
 `mappings.json` at the revision in `.mappings-ref` when no local registry is
 available. For GitHub releases of another repository (not a Maven
-coordinate, which a build tool already versions) `launcher` and `mods` each
+coordinate, which a build tool already versions) `protocol`, `launcher` and `mods` each
 keep a `dependencies.json` pinning an exact version, never "latest", so a bad
 release elsewhere cannot break the build unannounced. A sibling checkout still
-wins over the pin when one is present. `mods` and `idea` resolve the Gradle
-plugin and Java API from the Gradle Plugin Portal and Maven Central.
+wins over the pin when one is present. `mods` resolves the Gradle plugin and
+Java API from the Gradle Plugin Portal and Maven Central, and `idea` resolves
+the `coderpack` templates from Maven Central.
 
 Clone only the repository you want to change:
 
@@ -208,15 +215,20 @@ Clone only the repository you want to change:
 git clone https://github.com/ancaria-dev/coderpack.git
 ```
 
-For a side-by-side checkout, clone this repository with its nine submodules:
+For a side-by-side checkout, clone this repository and the rest of the group
+inside it, each under its own name. The builds find their siblings by those
+names:
 
 ```
-git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
+git clone https://github.com/ancaria-dev/.github.git ancaria
+cd ancaria
+for repo in mappings research coderpack protocol launcher build mods idea site; do
+    git clone https://github.com/ancaria-dev/$repo.git
+done
 ```
 
-The `ancaria.code-workspace` file opens the root and all nine project
-directories in one VS Code window when they are present. A recursive clone gets
-all nine.
+The `ancaria.code-workspace` file opens the root and every project directory
+that is present in one VS Code window.
 
 What each one produces:
 
