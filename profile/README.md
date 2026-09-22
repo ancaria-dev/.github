@@ -13,7 +13,7 @@
 # ancaria
 
 Sacred вышла в 2004 году без инструментов для модификации, а сборник Sacred Gold
-появился в 2005-м. Теперь моды можно писать на Java через API событий.
+появился в 2005-м. Теперь моды можно писать на Java или Kotlin через API событий.
 Файлы игры на диске при этом не меняются: хуки существуют только в памяти и
 исчезают после завершения процесса.
 
@@ -23,15 +23,17 @@ Sacred вышла в 2004 году без инструментов для мод
 работает в трёх частях. Rust-хост внедряет в игру JavaScript-агент, запускает
 рядом JVM и передаёт между ними сообщения строчного протокола. Агент ставит
 хуки на инструкции игры, а JVM передаёт события модам. Если событие можно
-отменить, игровой поток ждёт ответа мода. Через 250 мс хост отправляет `ok` от
-имени мода, который не успел ответить.
+отменить, игровой поток ждёт ответа мода. Если мод не успел ответить, хост
+отправляет `ok` от его имени, обычно через 250–375 мс после запроса, поэтому
+такие обработчики должны быть короткими.
 
 Проект предназначен только для одиночной игры. Здесь нет самой Sacred Gold,
 средств обхода DRM и функций для мультиплеера. Нужна собственная установленная
 копия игры.
 
-В этом репозитории нет кода. Это главная страница
-[ancaria.dev](https://ancaria.dev) и рабочая копия с семью git-сабмодулями.
+В этом репозитории нет кода. Он объединяет группу репозиториев проекта в одну
+рабочую копию. Сама страница [ancaria.dev](https://ancaria.dev) собирается из
+репозитория `site`.
 
 ## Компоненты проекта
 
@@ -39,19 +41,20 @@ Sacred вышла в 2004 году без инструментов для мод
 |---|---|
 | [`mappings`](https://github.com/ancaria-dev/mappings) | Реестр адресов для `pureHD.exe` 2.0.2.118: VA, RVA и уровень достоверности каждой записи. |
 | [`research`](https://github.com/ancaria-dev/research) | Скрипты дизассемблирования, пробы и заметки о том, как находились адреса и поведение игры. Эти материалы не входят в сборку для игроков. |
-| [`coderpack`](https://github.com/ancaria-dev/coderpack) | Frida-агент, Java API для компиляции модов и загрузчик на стороне JVM, который принимает события и передаёт их модам. |
+| [`coderpack`](https://github.com/ancaria-dev/coderpack) | Frida-агент, Java API для компиляции модов, его Kotlin-расширения и загрузчик на стороне JVM, который принимает события и передаёт их модам. |
 | [`protocol`](https://github.com/ancaria-dev/protocol) | Sacred Communication Protocol и Rust-хост, который передаёт сообщения между игрой и JVM. |
 | [`launcher`](https://github.com/ancaria-dev/launcher) | Один исполняемый файл для папки с игрой. В нём можно выбрать моды и запустить Sacred Gold. |
 | [`build`](https://github.com/ancaria-dev/build) | Инструменты сборки для авторов модов. Сейчас это Gradle-плагин. Поддержка Maven появится при необходимости. |
 | [`mods`](https://github.com/ancaria-dev/mods) | Официальный реестр модов и четыре мода. Лаунчер подключает этот реестр по умолчанию. |
-| [`idea`](https://github.com/ancaria-dev/idea) | Плагин для IntelliJ IDEA с мастером нового проекта, конфигурацией запуска Sacred, значками на полях и настройкой папки игры. Репозиторий создан, но пока пуст. |
+| [`idea`](https://github.com/ancaria-dev/idea) | Плагин для IntelliJ IDEA с мастером нового проекта, конфигурацией запуска Sacred, значками на полях и настройкой папки игры. |
+| [`site`](https://github.com/ancaria-dev/site) | Исходники [ancaria.dev](https://ancaria.dev): React и Vite, без бэкенда. CI собирает страницу и выкладывает её в Cloudflare. |
 
 ### Зависимости между репозиториями
 
 ```mermaid
 graph LR
     mappings --> coderpack
-    coderpack -.->|e2e-тест| protocol
+    coderpack -->|агент| protocol
     coderpack --> launcher
     protocol --> launcher
     mappings -.->|опционально| launcher
@@ -65,8 +68,8 @@ graph LR
 заглушку API вместо реальной Maven-зависимости, поэтому граф остаётся
 ациклическим даже с учётом того, что CI `coderpack` сверяет номер API-контракта
 с исходниками `build` и `launcher` — это чтение исходников для проверки, а не
-зависимость публикации. `research` в граф не входит: от него никто не зависит,
-и сам он ничего не публикует.
+зависимость публикации. `research` и `site` в граф не входят: от них никто не
+зависит, и сами они ни от кого не зависят.
 
 ## Игроку
 
@@ -91,7 +94,14 @@ graph LR
 
 ### Свой мод
 
-Командная утилита `coderpack` входит в zip-архив каждого релиза
+Проще всего начать в IntelliJ IDEA. Плагин
+[Sacred Mod Development](https://plugins.jetbrains.com/plugin/34165-sacred-mod-development) из JetBrains
+Marketplace добавляет мастер File → New → Project → Sacred Mod, конфигурацию
+Run Sacred, которая собирает мод и запускает с ним игру, и значки на полях у
+точки входа и слушателей.
+
+Без IDE тот же проект создаёт командная утилита `coderpack`. Она входит в
+zip-архив каждого релиза
 [build](https://github.com/ancaria-dev/build/releases). Распакуйте архив,
 добавьте `bin` в PATH и выполните:
 
@@ -102,9 +112,9 @@ coderpack new my-mod
 В `my-mod/` появится проект с Gradle Wrapper, заполненным блоком `sacred { }` и
 готовым слушателем. Команда `gradlew assembleSacredMod` собирает jar для
 загрузчика. Пакет, отображаемое имя, автора и другие параметры задают ключами,
-перечисленными в `coderpack help`. До первого релиза утилиту нужно собрать из
-чекаута `build`: запустите `./gradlew :templates:installDist` в каталоге
-`gradle`.
+перечисленными в `coderpack help`. Чтобы попробовать неопубликованные
+изменения, соберите утилиту из чекаута `build`: запустите
+`./gradlew :templates:installDist` в каталоге `gradle`.
 
 Проект можно создать вручную. Для обычного Gradle-проекта в IntelliJ IDEA
 достаточно трёх файлов.
@@ -181,27 +191,45 @@ public final class DoubleGold implements SacredMod {
 слушателей. Остальные события находятся в пакете
 `dev.ancaria.coderpack.api.event`.
 
+На Kotlin то же самое пишется через `dev.ancaria.coderpack:api-kotlin`, который
+уже подключён в любом проекте из `coderpack new --language kotlin`. Событие
+задаётся параметром типа, а геттеры становятся свойствами, поэтому слушатель
+выше выглядит как
+`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`.
+`mutate` есть только у событий, которые можно решать. Модуль лишь вызывает
+Java API и ничего к нему не добавляет, так что мод на Kotlin без него
+работает точно так же.
+
 ### Сборка
 
 Репозитории рассчитаны на отдельную сборку. `coderpack` скачивает
 `mappings.json` на ревизии, указанной в `.mappings-ref`. Для GitHub-релизов
-других репозиториев (не Maven-координат) `launcher` и `mods` держат в корне
+других репозиториев (не Maven-координат) `protocol`, `launcher` и `mods` держат в корне
 `dependencies.json` — пин точной версии, а не «последний релиз», так что
 чужой плохой релиз не ломает сборку без ведома автора; при наличии
-сиблинг-чекаута он всё равно побеждает. `mods` и `idea` получают плагин и API
-через Gradle Plugin Portal и Maven Central. Для работы над одним компонентом
+сиблинг-чекаута он всё равно побеждает. `mods` получает плагин и API через
+Gradle Plugin Portal и Maven Central, а `idea` берёт шаблоны `coderpack` из
+Maven Central. Для работы над одним компонентом
 клонируйте его репозиторий:
 
 ```
 git clone https://github.com/ancaria-dev/coderpack.git
 ```
 
-Семь репозиториев можно получить вместе с этим через
-`--recurse-submodules`. Файл `ancaria.code-workspace` открывает папки в одном
-окне VS Code. Плагин `idea` пока не опубликован в отдельном репозитории и не
-добавлен в `.gitmodules`, поэтому рекурсивный клон его не включает. Совместный
-чекаут удобен для разработки, но после публикации зависимостей не требуется
-для отдельных сборок.
+Чтобы собрать всю группу рядом, клонируйте этот репозиторий, а внутрь него
+остальные под их собственными именами. Сборки находят соседей именно по этим
+именам:
+
+```
+git clone https://github.com/ancaria-dev/.github.git ancaria
+cd ancaria
+for repo in mappings research coderpack protocol launcher build mods idea site; do
+    git clone https://github.com/ancaria-dev/$repo.git
+done
+```
+
+Файл `ancaria.code-workspace` открывает все папки в одном окне VS Code.
+Совместный чекаут удобен для разработки, но для отдельных сборок не нужен.
 
 Результаты сборки:
 
@@ -209,11 +237,12 @@ git clone https://github.com/ancaria-dev/coderpack.git
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, из которого остальные компоненты берут адреса |
 | `coderpack` | `gradlew build` | `api-0.102.0.jar` и `api-kotlin-0.102.0.jar` для компиляции модов и `zygote-0.102.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
-| `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM |
+| `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM, со встроенным внутрь минифицированным агентом |
 | `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.101.0.zip` с командной утилитой |
-| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом, jar-файлами и агентом |
+| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом и jar-файлами |
 | `mods` | `gradlew assembleSacredMod` | Четыре jar-файла, проверенные линтером. `coderpack index` отдельно обновляет `sacred.mods.repository.json` |
 | `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
+| `site` | `pnpm build` | Каталог `dist/`. На `master` CI сам выкладывает его в Cloudflare, релиза у репозитория нет |
 
 У `research` нет общей команды сборки. В репозитории лежат отдельные скрипты
 для конкретных исследовательских задач.

@@ -13,7 +13,7 @@
 # ancaria
 
 Sacred was released for Windows in 2004, followed by the Sacred Gold compilation
-in 2005. ancaria adds a mod loader to that 32-bit game. Mods are written in Java
+in 2005. ancaria adds a mod loader to that 32-bit game. Mods are written in Java or Kotlin
 against an event API. The loader does not patch files in the game folder. Its
 hooks exist only in the running process and disappear when the game closes.
 
@@ -22,35 +22,36 @@ has three parts. A Rust host injects a JavaScript agent into the game and starts
 the JVM in a separate process. The agent hooks the game's instructions, the
 host carries line-based protocol messages between the agent and the JVM, and
 the JVM dispatches events to mods. A vetoable event blocks the game thread
-while it waits for a reply. After 250 ms, the host answers `ok` for a slow mod.
+while it waits for a reply. When a mod is slow, the host answers `ok` on its
+behalf, usually 250 to 375 ms after the ask, so keep such handlers short.
 
 The project is for single-player use. It does not bypass DRM, provide the game,
 or redistribute game files. You need your own installed copy of Sacred Gold.
 
-This repository contains no application code. It is the front page for
-[ancaria.dev](https://ancaria.dev) and a workspace for the other repositories.
-Seven are Git submodules. The IntelliJ IDEA plugin is the planned eighth
-repository, but its separate remote has not been created yet.
+This repository contains no application code. It joins the project's group
+of repositories into one workspace. The front page at
+[ancaria.dev](https://ancaria.dev) is built from `site`.
 
-## The eight repositories
+## The repositories
 
 | Repository | What it holds |
 |---|---|
 | [`mappings`](https://github.com/ancaria-dev/mappings) | The address registry for `pureHD.exe` 2.0.2.118. Each row records a virtual address, a relative virtual address, and its confidence level. |
 | [`research`](https://github.com/ancaria-dev/research) | Disassembly scripts, live probes, and research notes. None of it ships to players. |
-| [`coderpack`](https://github.com/ancaria-dev/coderpack) | The Frida agent, the Java API used by mods, the JVM-side loader, and the tools that generate the agent's address table. |
+| [`coderpack`](https://github.com/ancaria-dev/coderpack) | The Frida agent, the Java API used by mods, its Kotlin extensions, the JVM-side loader, and the tools that generate the agent's address table. |
 | [`protocol`](https://github.com/ancaria-dev/protocol) | The wire protocol and the Rust host that connects the game process to the JVM. |
 | [`launcher`](https://github.com/ancaria-dev/launcher) | The Windows executable that installs the loader, manages mods, and starts the game. |
 | [`build`](https://github.com/ancaria-dev/build) | The Gradle plugin, mod linter, and `coderpack` project scaffolder. The Maven directory currently contains design notes only. |
 | [`mods`](https://github.com/ancaria-dev/mods) | The default SRML mod repository and the source for four mods. |
-| [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. The repository exists but is still empty. |
+| [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. |
+| [`site`](https://github.com/ancaria-dev/site) | The source of [ancaria.dev](https://ancaria.dev): a React and Vite front end with no backend. CI builds it and ships it to Cloudflare. |
 
 ### How the repositories depend on each other
 
 ```mermaid
 graph LR
     mappings --> coderpack
-    coderpack -.->|e2e test| protocol
+    coderpack -->|agent| protocol
     coderpack --> launcher
     protocol --> launcher
     mappings -.->|optional| launcher
@@ -64,8 +65,8 @@ not depend on `coderpack`: the linter and the templates use their own API stub
 instead of a real Maven dependency, which keeps this graph acyclic even though
 `coderpack`'s CI checks out `build` and `launcher` to compare an API-contract
 constant against their source: that is a source read for a check, not a
-publish-time dependency. `research` is not in the graph: nothing depends on
-it and it publishes nothing.
+publish-time dependency. `research` and `site` are not in the graph: nothing
+depends on them, and they depend on nothing.
 
 ## For players
 
@@ -89,7 +90,13 @@ repositories are supported when you provide a token.
 
 ### Writing a mod
 
-Each [build](https://github.com/ancaria-dev/build/releases) release includes the
+The quickest start is IntelliJ IDEA. The
+[Sacred Mod Development](https://plugins.jetbrains.com/plugin/34165-sacred-mod-development) plugin from
+the JetBrains Marketplace adds a File → New → Project → Sacred Mod wizard, a
+Run Sacred configuration that builds the mod and starts the game with it, and
+gutter icons on the entrypoint and its listeners.
+
+Without an IDE, the command line writes the same project. Each [build](https://github.com/ancaria-dev/build/releases) release includes the
 `coderpack` command-line distribution. Unpack it, add its `bin` directory to
 PATH, and create a project with:
 
@@ -103,8 +110,8 @@ The generated `my-mod/` project includes a Gradle wrapper, a configured
 `coderpack help` lists options for the package, display name, author, language,
 build DSL, and other project settings.
 
-Until the first release, build the command line from a local `build` checkout.
-Run `./gradlew :templates:installDist` from its `gradle` directory.
+To try unreleased changes, build the command line from a local `build`
+checkout. Run `./gradlew :templates:installDist` from its `gradle` directory.
 
 You can also create the Java project yourself. It needs three files.
 
@@ -181,16 +188,26 @@ read-only, so the returned mutation is what changes the amount the game
 writes. `value()` is the delta with earlier listeners folded in. Other event
 classes are in `dev.ancaria.coderpack.api.event`.
 
+A Kotlin mod can say the same thing through
+`dev.ancaria.coderpack:api-kotlin`, which every project from
+`coderpack new --language kotlin` already depends on. The event becomes a type
+argument and a getter becomes a property, so the listener above is
+`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`.
+`mutate` exists only for an event that can be decided. The module forwards to
+the Java API and adds nothing to it, so a Kotlin mod that ignores it works the
+same way.
+
 ### Building it
 
 The repositories are designed to build independently. `coderpack` downloads
 `mappings.json` at the revision in `.mappings-ref` when no local registry is
 available. For GitHub releases of another repository (not a Maven
-coordinate, which a build tool already versions) `launcher` and `mods` each
+coordinate, which a build tool already versions) `protocol`, `launcher` and `mods` each
 keep a `dependencies.json` pinning an exact version, never "latest", so a bad
 release elsewhere cannot break the build unannounced. A sibling checkout still
-wins over the pin when one is present. `mods` and `idea` resolve the Gradle
-plugin and Java API from the Gradle Plugin Portal and Maven Central.
+wins over the pin when one is present. `mods` resolves the Gradle plugin and
+Java API from the Gradle Plugin Portal and Maven Central, and `idea` resolves
+the `coderpack` templates from Maven Central.
 
 Clone only the repository you want to change:
 
@@ -198,16 +215,20 @@ Clone only the repository you want to change:
 git clone https://github.com/ancaria-dev/coderpack.git
 ```
 
-For a side-by-side checkout, clone this repository with its seven submodules:
+For a side-by-side checkout, clone this repository and the rest of the group
+inside it, each under its own name. The builds find their siblings by those
+names:
 
 ```
-git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
+git clone https://github.com/ancaria-dev/.github.git ancaria
+cd ancaria
+for repo in mappings research coderpack protocol launcher build mods idea site; do
+    git clone https://github.com/ancaria-dev/$repo.git
+done
 ```
 
-The `ancaria.code-workspace` file opens the root and all eight project
-directories in one VS Code window when they are present. A recursive clone gets
-the seven current submodules. It omits `idea` until that project has its own
-remote and is added to `.gitmodules`.
+The `ancaria.code-workspace` file opens the root and every project directory
+that is present in one VS Code window.
 
 What each one produces:
 
@@ -215,11 +236,12 @@ What each one produces:
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, the address registry consumed by the agent build |
 | `coderpack` | `gradlew build` | `api-0.102.0.jar`, `api-kotlin-0.102.0.jar`, and `zygote-0.102.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
-| `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host |
+| `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host, with the agent minified inside it |
 | `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.101.0.zip` distribution |
-| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host, jars, and agent embedded |
+| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host and jars embedded |
 | `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
 | `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
+| `site` | `pnpm build` | A `dist/` directory. On `master`, CI deploys it to Cloudflare, and this repository publishes no release |
 
 `research` has no build output. It records the scripts, probes, and notes used
 to identify game behavior. Every hook address comes from `mappings`, whose rows
