@@ -22,7 +22,8 @@ has three parts. A Rust host injects a JavaScript agent into the game and starts
 the JVM in a separate process. The agent hooks the game's instructions, the
 host carries line-based protocol messages between the agent and the JVM, and
 the JVM dispatches events to mods. A vetoable event blocks the game thread
-while it waits for a reply. After 250 ms, the host answers `ok` for a slow mod.
+while it waits for a reply. When a mod is slow, the host answers `ok` on its
+behalf, usually 250 to 375 ms after the ask, so keep such handlers short.
 
 The project is for single-player use. It does not bypass DRM, provide the game,
 or redistribute game files. You need your own installed copy of Sacred Gold.

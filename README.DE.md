@@ -27,8 +27,9 @@ Ein Rust-Host injiziert einen JavaScript-Agenten in das Spiel, startet eine JVM
 daneben und vermittelt ein zeilenbasiertes Protokoll zwischen beiden. Der Agent
 setzt Hooks an den Instruktionen des Spiels. Auf der JVM-Seite werden die daraus
 entstehenden Ereignisse an die Mods verteilt. Darf ein Mod ein Ereignis
-abbrechen oder verändern, wartet der Spiel-Thread auf dessen Antwort. Nach
-250 ms sendet der Host `ok`, falls der Mod nicht rechtzeitig geantwortet hat.
+abbrechen oder verändern, wartet der Spiel-Thread auf dessen Antwort. Antwortet
+der Mod nicht rechtzeitig, sendet der Host `ok` an seiner Stelle, meist 250 bis
+375 ms nach der Anfrage. Solche Handler sollten deshalb kurz bleiben.
 
 Ancaria ist weder ein Mehrspieler-Cheat noch ein Crack oder eine Bezugsquelle
 für das Spiel. Ohne eine eigene, installierte Ausgabe von Sacred Gold
