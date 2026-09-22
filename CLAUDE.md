@@ -64,7 +64,7 @@ multiplayer features, DRM bypass, game executable, or redistributed game files.
 ## Repository ownership
 
 The project has nine component repositories at
-`https://github.com/ancaria-dev/<name>.git`, all included here as submodules,
+`https://github.com/ancaria-dev/<name>.git`, all cloned side by side here,
 including `idea`, the source for the IntelliJ IDEA plugin.
 
 | Directory | Owns |
@@ -90,11 +90,16 @@ an address or fact used by the loader, record the result in `mappings`.
 ## Checkout
 
 ```text
-git clone --recurse-submodules https://github.com/ancaria-dev/.github.git
-git submodule update --init --recursive     # if cloned without the flag
+git clone https://github.com/ancaria-dev/.github.git ancaria
+cd ancaria
+for repo in mappings research coderpack protocol launcher build mods idea site; do
+    git clone https://github.com/ancaria-dev/$repo.git
+done
 ```
 
-The root repository and all nine submodules use `master`. Each entry in
+The project directories are separate clones, not gitlinks in the root index,
+so never `git add -A` from the root. The root repository and all nine project
+repositories use `master`. Each entry in
 `.gitmodules` pins `branch = master`.
 
 A full workspace is optional. Side-by-side checkouts provide direct source
@@ -244,7 +249,7 @@ raise `pluginVersion` in `idea`.
 ## Rules
 
 - Commit in the repository that owns the changed file. Changes inside a
-  submodule belong to that repository’s history and remote. Changes to
+  project directory belong to that repository’s history and remote. Changes to
   root-owned files such as this guide, the root READMEs, `.gitmodules`, or
   `ancaria.code-workspace` belong to the root repository. `idea` has its own
   repository and remote.
