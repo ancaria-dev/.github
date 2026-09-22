@@ -65,9 +65,7 @@ multiplayer features, DRM bypass, game executable, or redistributed game files.
 
 The project has nine component repositories at
 `https://github.com/ancaria-dev/<name>.git`, all included here as submodules,
-including `idea`, the source for the IntelliJ IDEA plugin. Its remote exists
-but is still empty. A clone taken before `idea/` is pushed gets an empty
-checkout for it.
+including `idea`, the source for the IntelliJ IDEA plugin.
 
 | Directory | Owns |
 |---|---|
@@ -98,10 +96,6 @@ git submodule update --init --recursive     # if cloned without the flag
 
 The root repository and all nine submodules use `master`. Each entry in
 `.gitmodules` pins `branch = master`.
-
-`idea` is pushed last in the publish order. A recursive clone taken before
-that push gets an empty checkout for it. Run
-`git submodule update --remote idea` again once it has commits.
 
 A full workspace is optional. Side-by-side checkouts provide direct source
 coupling. `coderpack` can generate its address table from `../mappings`,
@@ -243,11 +237,9 @@ somebody presses Publish in the portal. `idea` resolves
 for that press: pushed earlier, its CI fails on a dependency that does not exist
 yet. Check with a request for the POM before pushing the pin.
 
-`idea` cannot publish until it has been pushed and its CI has run once. Its
-workflow is prepared to publish the same plugin zip to the JetBrains
-Marketplace and a GitHub release. Once that first push has happened, release
-`build` first when the scaffolder changed, then raise `pluginVersion` in
-`idea`.
+`idea`'s workflow publishes the same plugin zip to the JetBrains Marketplace
+and a GitHub release. Release `build` first when the scaffolder changed, then
+raise `pluginVersion` in `idea`.
 
 ## Rules
 
@@ -255,8 +247,7 @@ Marketplace and a GitHub release. Once that first push has happened, release
   submodule belong to that repository’s history and remote. Changes to
   root-owned files such as this guide, the root READMEs, `.gitmodules`, or
   `ancaria.code-workspace` belong to the root repository. `idea` has its own
-  repository and remote now. Do not claim or run a release from it until it
-  has been pushed and its CI has run once.
+  repository and remote.
 - Write the commit subject and nothing else. Imperative, sentence case, no
   full stop, and as short as the change allows, ten words is the ceiling,
   not the target. Name the one thing that changed: `Register the site
@@ -291,8 +282,7 @@ Marketplace and a GitHub release. Once that first push has happened, release
   templates.
 - The root repository has no CI. Eight component repositories have
   `.github/workflows/build.yml`: `build`, `coderpack`, `protocol`, `launcher`,
-  `mods`, `idea`, `site`, and `mappings`. `idea`'s workflow cannot run as that
-  project's CI until it has been pushed. `research` has no workflow, and needs
+  `mods`, `idea`, `site`, and `mappings`. `research` has no workflow, and needs
   none: nothing in it ships.
 - Each of those workflows runs that repository's own tests, so there is no
   suite anywhere that only runs by hand. `mappings` is the exception in shape:
