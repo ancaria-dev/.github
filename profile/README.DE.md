@@ -148,7 +148,7 @@ rootProject.name = "double-gold"
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.99.0"
+    id("dev.ancaria.coderpack") version "0.101.0"
 }
 
 version = "1.0.0"
@@ -157,7 +157,7 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.99.0"
+    apiVersion = "0.102.0"
     author("you")
 }
 ```
@@ -175,20 +175,24 @@ public final class DoubleGold implements SacredMod {
 
     @Override
     public void onLoad(Context context) {
-        context.events().on(Gold.class, e -> {
-            if (!e.spending()) e.delta(e.delta() * 2);
-        });
+        context.events().decide(Gold.class, e -> e.spending()
+                ? Gold.Mutation.none()
+                : Gold.Mutation.change(e.value() * 2));
     }
 }
 ```
 
 Nach `gradlew assembleSacredMod` wird aufgesammeltes Gold verdoppelt. Die
-Methode `on` registriert den Listener als Lambda und liefert ein `Handle`
-zurück, über das er später wieder abgemeldet werden kann. Alternativ markiert
-`@Subscribe` eine öffentliche Methode mit genau einem Ereignisparameter. Die
-Annotation unterstützt außerdem `priority` und `ignoreCancelled`. Das
-`Gold`-Ereignis wird ausgelöst, bevor das Spiel den Wert schreibt. Deshalb kann
-der Mod das Delta noch ändern. Weitere Ereignistypen liegen im Paket
+Methode `decide` registriert ein Lambda, das mit einer `Gold.Mutation`
+antwortet, `on` dagegen einen Listener, der nur beobachtet. Beide liefern ein
+`Handle` zurück, über das sich der Listener später wieder abmelden lässt.
+Alternativ markiert `@Subscribe` eine öffentliche Methode mit genau einem
+Ereignisparameter. Sie gibt `void` zurück, um zu beobachten, oder die
+`Mutation` ihres Ereignisses, um zu entscheiden. Die Annotation unterstützt
+außerdem `priority` und `ignoreVetoed`. Das `Gold`-Ereignis wird ausgelöst,
+bevor das Spiel den Wert schreibt. Ereignisse sind nur lesbar, deshalb ändert
+erst die zurückgegebene Mutation das Delta. `value()` enthält das Delta mit den
+Änderungen früherer Listener. Weitere Ereignistypen liegen im Paket
 `dev.ancaria.coderpack.api.event`.
 
 ### Bauen
@@ -224,12 +228,12 @@ Was dabei jeweils herauskommt:
 | Repository | Womit gebaut | Was herauskommt |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, aus der die übrigen Komponenten ihre Adressen beziehen |
-| `coderpack` | `gradlew build` | `api-0.99.0.jar` für Mod-Builds und `zygote-0.99.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.102.0.jar` und `api-kotlin-0.102.0.jar` für Mod-Builds und `zygote-0.102.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, der Host zwischen Spiel und JVM |
-| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.99.0.zip` mit dem Kommandozeilenwerkzeug |
+| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.101.0.zip` mit dem Kommandozeilenwerkzeug |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host, JAR-Dateien und Agent |
 | `mods` | `gradlew assembleSacredMod` | vier vom Linter geprüfte JAR-Dateien. `coderpack index` aktualisiert `sacred.mods.repository.json` separat |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
 
 `research` erzeugt kein auslieferbares Artefakt. Dort liegen die Skripte und
 Notizen, mit denen einzelne Fragen zum Spiel untersucht wurden.

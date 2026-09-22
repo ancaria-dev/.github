@@ -135,7 +135,7 @@ rootProject.name = "double-gold"
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.99.0"
+    id("dev.ancaria.coderpack") version "0.101.0"
 }
 
 version = "1.0.0"
@@ -144,7 +144,7 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.99.0"
+    apiVersion = "0.102.0"
     author("you")
 }
 ```
@@ -162,19 +162,23 @@ public final class DoubleGold implements SacredMod {
 
     @Override
     public void onLoad(Context context) {
-        context.events().on(Gold.class, e -> {
-            if (!e.spending()) e.delta(e.delta() * 2);
-        });
+        context.events().decide(Gold.class, e -> e.spending()
+                ? Gold.Mutation.none()
+                : Gold.Mutation.change(e.value() * 2));
     }
 }
 ```
 
-После `gradlew assembleSacredMod` мод удваивает получаемое золото. Метод `on`
-регистрирует слушатель-лямбду и возвращает `Handle`, с помощью которого
-слушатель можно удалить. Аннотация `@Subscribe` над публичным методом с одним
-параметром делает то же самое и поддерживает `priority` и `ignoreCancelled`.
-Событие `Gold` приходит до записи значения игрой, поэтому изменённая дельта
-попадает в игру. Остальные события находятся в пакете
+После `gradlew assembleSacredMod` мод удваивает получаемое золото. Метод
+`decide` регистрирует лямбду, которая отвечает `Gold.Mutation`, а `on`
+регистрирует слушатель, который только наблюдает. Оба возвращают `Handle`, с
+помощью которого слушатель можно удалить. Аннотация `@Subscribe` над публичным
+методом с одним параметром делает то же самое. Такой метод возвращает `void`,
+чтобы наблюдать, или `Mutation` своего события, чтобы решать. Аннотация также
+поддерживает `priority` и `ignoreVetoed`. Событие `Gold` приходит до записи
+значения игрой. События доступны только для чтения, поэтому в игру попадает
+возвращённая мутация. `value()` содержит дельту с учётом предыдущих
+слушателей. Остальные события находятся в пакете
 `dev.ancaria.coderpack.api.event`.
 
 ### Сборка
@@ -204,12 +208,12 @@ git clone https://github.com/ancaria-dev/coderpack.git
 | Репозиторий | Чем собирается | Что на выходе |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, из которого остальные компоненты берут адреса |
-| `coderpack` | `gradlew build` | `api-0.99.0.jar` для компиляции модов и `zygote-0.99.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.102.0.jar` и `api-kotlin-0.102.0.jar` для компиляции модов и `zygote-0.102.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM |
-| `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.99.0.zip` с командной утилитой |
+| `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.101.0.zip` с командной утилитой |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом, jar-файлами и агентом |
 | `mods` | `gradlew assembleSacredMod` | Четыре jar-файла, проверенные линтером. `coderpack index` отдельно обновляет `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
 
 У `research` нет общей команды сборки. В репозитории лежат отдельные скрипты
 для конкретных исследовательских задач.

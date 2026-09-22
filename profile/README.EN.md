@@ -134,7 +134,7 @@ required. Setting `apiVersion` adds `dev.ancaria.coderpack:api` as a
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.99.0"
+    id("dev.ancaria.coderpack") version "0.101.0"
 }
 
 version = "1.0.0"
@@ -143,7 +143,7 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.99.0"
+    apiVersion = "0.102.0"
     author("you")
 }
 ```
@@ -161,22 +161,25 @@ public final class DoubleGold implements SacredMod {
 
     @Override
     public void onLoad(Context context) {
-        context.events().on(Gold.class, e -> {
-            if (!e.spending()) e.delta(e.delta() * 2);
-        });
+        context.events().decide(Gold.class, e -> e.spending()
+                ? Gold.Mutation.none()
+                : Gold.Mutation.change(e.value() * 2));
     }
 }
 ```
 
 Run `gradlew assembleSacredMod`. The resulting mod doubles positive gold
-changes and leaves spending unchanged. `on` registers a lambda listener and
-returns a `Handle` that can unregister it. You can instead annotate a public
-one-parameter method with `@Subscribe`, which also supports `priority` and
-`ignoreCancelled`.
+changes and leaves spending unchanged. `decide` registers a lambda that answers
+with a `Gold.Mutation`, and `on` registers one that only observes. Both return
+a `Handle` that can unregister it. You can instead annotate a public
+one-parameter method with `@Subscribe`. It returns `void` to observe or the
+event's `Mutation` to decide, and the annotation also supports `priority` and
+`ignoreVetoed`.
 
-The `Gold` event arrives before the game applies the change, so replacing its
-delta changes the amount the game writes. Other event classes are in
-`dev.ancaria.coderpack.api.event`.
+The `Gold` event arrives before the game applies the change. Events are
+read-only, so the returned mutation is what changes the amount the game
+writes. `value()` is the delta with earlier listeners folded in. Other event
+classes are in `dev.ancaria.coderpack.api.event`.
 
 ### Building it
 
@@ -211,12 +214,12 @@ What each one produces:
 | Repository | Built with | What comes out |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, the address registry consumed by the agent build |
-| `coderpack` | `gradlew build` | `api-0.99.0.jar` and `zygote-0.99.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
+| `coderpack` | `gradlew build` | `api-0.102.0.jar`, `api-kotlin-0.102.0.jar`, and `zygote-0.102.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host |
-| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.99.0.zip` distribution |
+| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.101.0.zip` distribution |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host, jars, and agent embedded |
 | `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.99.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
 
 `research` has no build output. It records the scripts, probes, and notes used
 to identify game behavior. Every hook address comes from `mappings`, whose rows
