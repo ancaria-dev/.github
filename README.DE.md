@@ -155,7 +155,7 @@ rootProject.name = "double-gold"
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.101.0"
+    id("dev.ancaria.coderpack") version "0.200.0"
 }
 
 version = "1.0.0"
@@ -164,52 +164,70 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.102.0"
+    apiVersion = "0.200.0"
     author("you")
 }
 ```
 
-Der eigentliche Mod liegt in `src/main/java/demo/DoubleGold.java`:
+Der eigentliche Mod liegt in `src/main/java/demo/DoubleGold.java`. Der
+Einstiegspunkt erweitert die Klasse `SacredMod`:
 
 ```java
 package demo;
 
-import dev.ancaria.coderpack.api.Context;
 import dev.ancaria.coderpack.api.SacredMod;
+import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Gold;
 
-public final class DoubleGold implements SacredMod {
+public final class DoubleGold extends SacredMod {
 
     @Override
-    public void onLoad(Context context) {
-        context.events().decide(Gold.class, e -> e.spending()
-                ? Gold.Mutation.none()
-                : Gold.Mutation.change(e.value() * 2));
+    public void onLoad() {
+        getContext().getRegistry().getEventRegistry().register(this);
+    }
+
+    @Subscribe
+    public Gold.Mutation onGold(Gold event) {
+        if (event.isSpending()) {
+            return Gold.Mutation.none();
+        }
+        return Gold.Mutation.change(event.getValue() * 2);
     }
 }
 ```
 
-Nach `gradlew assembleSacredMod` wird aufgesammeltes Gold verdoppelt. Die
-Methode `decide` registriert ein Lambda, das mit einer `Gold.Mutation`
-antwortet, `on` dagegen einen Listener, der nur beobachtet. Beide liefern ein
-`Handle` zurück, über das sich der Listener später wieder abmelden lässt.
-Alternativ markiert `@Subscribe` eine öffentliche Methode mit genau einem
-Ereignisparameter. Sie gibt `void` zurück, um zu beobachten, oder die
-`Mutation` ihres Ereignisses, um zu entscheiden. Die Annotation unterstützt
-außerdem `priority` und `ignoreVetoed`. Das `Gold`-Ereignis wird ausgelöst,
-bevor das Spiel den Wert schreibt. Ereignisse sind nur lesbar, deshalb ändert
-erst die zurückgegebene Mutation das Delta. `value()` enthält das Delta mit den
-Änderungen früherer Listener. Weitere Ereignistypen liegen im Paket
-`dev.ancaria.coderpack.api.event`.
+Nach `gradlew assembleSacredMod` wird aufgesammeltes Gold verdoppelt. Der
+Loader erzeugt die Instanz selbst und gibt ihr `getContext()`, `onLoad` und
+`onUnload` markieren Anfang und Ende des Mods. `register(this)` macht jede
+öffentliche Methode mit `@Subscribe` und genau einem Ereignisparameter zum
+Listener. Sie gibt `void` zurück, um zu beobachten, oder die `Mutation` ihres
+Ereignisses, um zu entscheiden. Die Annotation unterstützt außerdem `priority`
+und `ignoreVetoed`. Ohne Annotationen erledigen `on` und `decide` an
+`getEventRegistry()` dasselbe mit einem Lambda. Beide liefern ein `Handle`
+zurück, über das sich der Listener wieder abmelden lässt. Das `Gold`-Ereignis
+wird ausgelöst, bevor das Spiel den Wert schreibt. Ereignisse sind nur lesbar,
+deshalb ändert erst die zurückgegebene Mutation das Delta. `getValue()` enthält
+das Delta mit den Änderungen früherer Listener. Weitere Ereignistypen liegen im
+Paket `dev.ancaria.coderpack.api.event`. `getContext().log(...)` schreibt eine
+Zeile nach `logs/mods.log` im Spielordner.
 
 In Kotlin steht dasselbe über `dev.ancaria.coderpack:api-kotlin` zur Verfügung,
 das jedes Projekt aus `coderpack new --language kotlin` bereits einbindet. Das
-Ereignis wird zum Typargument, und ein Getter wird zur Eigenschaft, so dass der
-Listener von oben
-`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`
-lautet. `mutate` gibt es nur bei Ereignissen, über die entschieden werden kann.
-Das Modul ruft nur die Java-API auf und fügt ihr nichts hinzu; ein Kotlin-Mod
-ohne es funktioniert genauso.
+Ereignis wird zum Typargument, und ein Getter wird zur Eigenschaft:
+
+```kotlin
+class DoubleGold : SacredMod() {
+
+    override fun onLoad() {
+        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
+    }
+}
+```
+
+`mutate` gibt es nur bei Ereignissen, über die entschieden werden kann. Das
+Modul ruft nur die Java-API auf und fügt ihr nichts hinzu; ein Kotlin-Mod ohne
+es funktioniert genauso. Die dritte Sprache des Generators, Groovy, wird mit
+`--language groovy` gewählt, ihre Laufzeit wird in das Mod-JAR gepackt.
 
 ### Bauen
 
@@ -249,12 +267,12 @@ Was dabei jeweils herauskommt:
 | Repository | Womit gebaut | Was herauskommt |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, aus der die übrigen Komponenten ihre Adressen beziehen |
-| `coderpack` | `gradlew build` | `api-0.102.0.jar` und `api-kotlin-0.102.0.jar` für Mod-Builds und `zygote-0.102.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.200.0.jar` und `api-kotlin-0.200.0.jar` für Mod-Builds und `zygote-0.200.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, der Host zwischen Spiel und JVM, mit dem minifizierten Agenten darin |
-| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.101.0.zip` mit dem Kommandozeilenwerkzeug |
+| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.200.0.zip` mit dem Kommandozeilenwerkzeug |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host und JAR-Dateien |
 | `mods` | `gradlew assembleSacredMod` | vier vom Linter geprüfte JAR-Dateien. `coderpack index` aktualisiert `sacred.mods.repository.json` separat |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.200.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
 | `site` | `pnpm build` | das Verzeichnis `dist/`. Auf `master` veröffentlicht die CI es bei Cloudflare; ein Release gibt es hier nicht |
 
 `research` erzeugt kein auslieferbares Artefakt. Dort liegen die Skripte und

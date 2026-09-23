@@ -145,7 +145,7 @@ rootProject.name = "double-gold"
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.101.0"
+    id("dev.ancaria.coderpack") version "0.200.0"
 }
 
 version = "1.0.0"
@@ -154,51 +154,69 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.102.0"
+    apiVersion = "0.200.0"
     author("you")
 }
 ```
 
-Сам мод находится в `src/main/java/demo/DoubleGold.java`:
+Сам мод находится в `src/main/java/demo/DoubleGold.java`. Точка входа
+наследует класс `SacredMod`:
 
 ```java
 package demo;
 
-import dev.ancaria.coderpack.api.Context;
 import dev.ancaria.coderpack.api.SacredMod;
+import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Gold;
 
-public final class DoubleGold implements SacredMod {
+public final class DoubleGold extends SacredMod {
 
     @Override
-    public void onLoad(Context context) {
-        context.events().decide(Gold.class, e -> e.spending()
-                ? Gold.Mutation.none()
-                : Gold.Mutation.change(e.value() * 2));
+    public void onLoad() {
+        getContext().getRegistry().getEventRegistry().register(this);
+    }
+
+    @Subscribe
+    public Gold.Mutation onGold(Gold event) {
+        if (event.isSpending()) {
+            return Gold.Mutation.none();
+        }
+        return Gold.Mutation.change(event.getValue() * 2);
     }
 }
 ```
 
-После `gradlew assembleSacredMod` мод удваивает получаемое золото. Метод
-`decide` регистрирует лямбду, которая отвечает `Gold.Mutation`, а `on`
-регистрирует слушатель, который только наблюдает. Оба возвращают `Handle`, с
-помощью которого слушатель можно удалить. Аннотация `@Subscribe` над публичным
-методом с одним параметром делает то же самое. Такой метод возвращает `void`,
-чтобы наблюдать, или `Mutation` своего события, чтобы решать. Аннотация также
-поддерживает `priority` и `ignoreVetoed`. Событие `Gold` приходит до записи
-значения игрой. События доступны только для чтения, поэтому в игру попадает
-возвращённая мутация. `value()` содержит дельту с учётом предыдущих
-слушателей. Остальные события находятся в пакете
-`dev.ancaria.coderpack.api.event`.
+После `gradlew assembleSacredMod` мод удваивает получаемое золото. Загрузчик
+сам создаёт экземпляр класса и выдаёт ему `getContext()`, а `onLoad` и
+`onUnload` отмечают начало и конец жизни мода. Вызов `register(this)` делает
+слушателем каждый публичный метод с `@Subscribe` и одним параметром. Такой
+метод возвращает `void`, чтобы наблюдать, или `Mutation` своего события, чтобы
+решать. Аннотация также поддерживает `priority` и `ignoreVetoed`. Без аннотаций
+то же самое делают `on` и `decide` у `getEventRegistry()`. Оба принимают лямбду и
+возвращают `Handle`, с помощью которого слушатель можно удалить. Событие
+`Gold` приходит до записи значения игрой. События доступны только для чтения,
+поэтому в игру попадает возвращённая мутация. `getValue()` содержит дельту с
+учётом предыдущих слушателей. Остальные события находятся в пакете
+`dev.ancaria.coderpack.api.event`. `getContext().log(...)` пишет строку в
+`logs/mods.log` внутри папки игры.
 
 На Kotlin то же самое пишется через `dev.ancaria.coderpack:api-kotlin`, который
 уже подключён в любом проекте из `coderpack new --language kotlin`. Событие
-задаётся параметром типа, а геттеры становятся свойствами, поэтому слушатель
-выше выглядит как
-`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`.
+задаётся параметром типа, а геттеры становятся свойствами:
+
+```kotlin
+class DoubleGold : SacredMod() {
+
+    override fun onLoad() {
+        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
+    }
+}
+```
+
 `mutate` есть только у событий, которые можно решать. Модуль лишь вызывает
 Java API и ничего к нему не добавляет, так что мод на Kotlin без него
-работает точно так же.
+работает точно так же. Третий язык скаффолдера, Groovy, выбирается ключом
+`--language groovy`. Его рантайм упаковывается в jar мода.
 
 ### Сборка
 
@@ -236,12 +254,12 @@ done
 | Репозиторий | Чем собирается | Что на выходе |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, из которого остальные компоненты берут адреса |
-| `coderpack` | `gradlew build` | `api-0.102.0.jar` и `api-kotlin-0.102.0.jar` для компиляции модов и `zygote-0.102.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.200.0.jar` и `api-kotlin-0.200.0.jar` для компиляции модов и `zygote-0.200.0.jar` для JVM. CI отдельно упаковывает сгенерированный агент в релизный файл `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, хост между игрой и JVM, со встроенным внутрь минифицированным агентом |
-| `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.101.0.zip` с командной утилитой |
+| `build` | `./gradlew build` в каталоге `gradle` | Gradle-плагин, линтер и `coderpack-0.200.0.zip` с командной утилитой |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe`, около 81 МБ (77 МиБ), со встроенными хостом и jar-файлами |
 | `mods` | `gradlew assembleSacredMod` | Четыре jar-файла, проверенные линтером. `coderpack index` отдельно обновляет `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.200.0.zip`. При выпуске CI также отправляет плагин в JetBrains Marketplace |
 | `site` | `pnpm build` | Каталог `dist/`. На `master` CI сам выкладывает его в Cloudflare, релиза у репозитория нет |
 
 У `research` нет общей команды сборки. В репозитории лежат отдельные скрипты
