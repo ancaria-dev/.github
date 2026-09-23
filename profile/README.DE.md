@@ -155,7 +155,7 @@ rootProject.name = "double-gold"
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.101.0"
+    id("dev.ancaria.coderpack") version "0.200.0"
 }
 
 version = "1.0.0"
@@ -164,52 +164,70 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.102.0"
+    apiVersion = "0.200.0"
     author("you")
 }
 ```
 
-Der eigentliche Mod liegt in `src/main/java/demo/DoubleGold.java`:
+Der eigentliche Mod liegt in `src/main/java/demo/DoubleGold.java`. Der
+Einstiegspunkt erweitert die Klasse `SacredMod`:
 
 ```java
 package demo;
 
-import dev.ancaria.coderpack.api.Context;
 import dev.ancaria.coderpack.api.SacredMod;
+import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Gold;
 
-public final class DoubleGold implements SacredMod {
+public final class DoubleGold extends SacredMod {
 
     @Override
-    public void onLoad(Context context) {
-        context.events().decide(Gold.class, e -> e.spending()
-                ? Gold.Mutation.none()
-                : Gold.Mutation.change(e.value() * 2));
+    public void onLoad() {
+        getContext().getRegistry().getEventRegistry().register(this);
+    }
+
+    @Subscribe
+    public Gold.Mutation onGold(Gold event) {
+        if (event.isSpending()) {
+            return Gold.Mutation.none();
+        }
+        return Gold.Mutation.change(event.getValue() * 2);
     }
 }
 ```
 
-Nach `gradlew assembleSacredMod` wird aufgesammeltes Gold verdoppelt. Die
-Methode `decide` registriert ein Lambda, das mit einer `Gold.Mutation`
-antwortet, `on` dagegen einen Listener, der nur beobachtet. Beide liefern ein
-`Handle` zurück, über das sich der Listener später wieder abmelden lässt.
-Alternativ markiert `@Subscribe` eine öffentliche Methode mit genau einem
-Ereignisparameter. Sie gibt `void` zurück, um zu beobachten, oder die
-`Mutation` ihres Ereignisses, um zu entscheiden. Die Annotation unterstützt
-außerdem `priority` und `ignoreVetoed`. Das `Gold`-Ereignis wird ausgelöst,
-bevor das Spiel den Wert schreibt. Ereignisse sind nur lesbar, deshalb ändert
-erst die zurückgegebene Mutation das Delta. `value()` enthält das Delta mit den
-Änderungen früherer Listener. Weitere Ereignistypen liegen im Paket
-`dev.ancaria.coderpack.api.event`.
+Nach `gradlew assembleSacredMod` wird aufgesammeltes Gold verdoppelt. Der
+Loader erzeugt die Instanz selbst und gibt ihr `getContext()`, `onLoad` und
+`onUnload` markieren Anfang und Ende des Mods. `register(this)` macht jede
+öffentliche Methode mit `@Subscribe` und genau einem Ereignisparameter zum
+Listener. Sie gibt `void` zurück, um zu beobachten, oder die `Mutation` ihres
+Ereignisses, um zu entscheiden. Die Annotation unterstützt außerdem `priority`
+und `ignoreVetoed`. Ohne Annotationen erledigen `on` und `decide` an
+`getEventRegistry()` dasselbe mit einem Lambda. Beide liefern ein `Handle`
+zurück, über das sich der Listener wieder abmelden lässt. Das `Gold`-Ereignis
+wird ausgelöst, bevor das Spiel den Wert schreibt. Ereignisse sind nur lesbar,
+deshalb ändert erst die zurückgegebene Mutation das Delta. `getValue()` enthält
+das Delta mit den Änderungen früherer Listener. Weitere Ereignistypen liegen im
+Paket `dev.ancaria.coderpack.api.event`. `getContext().log(...)` schreibt eine
+Zeile nach `logs/mods.log` im Spielordner.
 
 In Kotlin steht dasselbe über `dev.ancaria.coderpack:api-kotlin` zur Verfügung,
 das jedes Projekt aus `coderpack new --language kotlin` bereits einbindet. Das
-Ereignis wird zum Typargument, und ein Getter wird zur Eigenschaft, so dass der
-Listener von oben
-`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`
-lautet. `mutate` gibt es nur bei Ereignissen, über die entschieden werden kann.
-Das Modul ruft nur die Java-API auf und fügt ihr nichts hinzu; ein Kotlin-Mod
-ohne es funktioniert genauso.
+Ereignis wird zum Typargument, und ein Getter wird zur Eigenschaft:
+
+```kotlin
+class DoubleGold : SacredMod() {
+
+    override fun onLoad() {
+        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
+    }
+}
+```
+
+`mutate` gibt es nur bei Ereignissen, über die entschieden werden kann. Das
+Modul ruft nur die Java-API auf und fügt ihr nichts hinzu; ein Kotlin-Mod ohne
+es funktioniert genauso. Die dritte Sprache des Generators, Groovy, wird mit
+`--language groovy` gewählt, ihre Laufzeit wird in das Mod-JAR gepackt.
 
 ### Bauen
 
@@ -249,12 +267,12 @@ Was dabei jeweils herauskommt:
 | Repository | Womit gebaut | Was herauskommt |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, aus der die übrigen Komponenten ihre Adressen beziehen |
-| `coderpack` | `gradlew build` | `api-0.102.0.jar` und `api-kotlin-0.102.0.jar` für Mod-Builds und `zygote-0.102.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
+| `coderpack` | `gradlew build` | `api-0.200.0.jar` und `api-kotlin-0.200.0.jar` für Mod-Builds und `zygote-0.200.0.jar` für die JVM-Seite. Die CI packt den erzeugten Agenten zusätzlich als Release-Datei `agent.zip` |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, der Host zwischen Spiel und JVM, mit dem minifizierten Agenten darin |
-| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.101.0.zip` mit dem Kommandozeilenwerkzeug |
+| `build` | `./gradlew build` im Verzeichnis `gradle` | das Gradle-Plugin, der Linter und `coderpack-0.200.0.zip` mit dem Kommandozeilenwerkzeug |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` mit eingebettetem Host und JAR-Dateien |
 | `mods` | `gradlew assembleSacredMod` | vier vom Linter geprüfte JAR-Dateien. `coderpack index` aktualisiert `sacred.mods.repository.json` separat |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.200.0.zip`. Bei einem Release lädt die CI das Plugin auch zum JetBrains Marketplace hoch |
 | `site` | `pnpm build` | das Verzeichnis `dist/`. Auf `master` veröffentlicht die CI es bei Cloudflare; ein Release gibt es hier nicht |
 
 `research` erzeugt kein auslieferbares Artefakt. Dort liegen die Skripte und
@@ -269,7 +287,7 @@ Tag `v<Version>` noch nicht existiert, und legt dieses Tag anschließend an.
 Eine neue Versionsnummer löst damit den nächsten Release aus. Mods werden
 einzeln unter Tags der Form `<id>-v<Version>` veröffentlicht.
 
-### Versionen aktualisieren
+### Arbeit mit Versionen
 
 Die Versionsnummer steht nicht an einer Stelle. Sie verteilt sich auf
 `gradle.properties`, `Cargo.toml`, ein README, manchmal sogar auf einen
@@ -282,8 +300,65 @@ jeder Stelle in diesem Repository in einem Durchgang neu:
 
 ```
 pwsh tools/version.ps1
-pwsh tools/version.ps1 0.99.1
+pwsh tools/version.ps1 0.200.1
 ```
+
+Das Skript ändert nur die eigene Version des Repositorys. Pins auf Releases
+anderer Repositories in `dependencies.json` oder in einem Gradle-Versionskatalog
+bleiben unberührt: Sie werden in einem eigenen, bewussten Commit angehoben.
+
+#### Aktualisierung im Paket
+
+> [!NOTE]
+> Nur möglich, wenn alle Versionen innerhalb des einen Repositorys bereits übereinstimmen.
+
+In `mods` trägt jeder Mod seine eigene Version in seiner `build.gradle.kts`,
+eine gemeinsame Quelle gibt es nicht. `mods/tools/version.ps1` hebt alle vier
+Mods in einem Aufruf an, aber nur, wenn sie bereits gleich sind. Weicht auch nur
+einer ab, gibt das Skript alle vier Versionen aus und bricht ab; die Abweichung
+muss zuerst von Hand bereinigt werden:
+
+```
+pwsh tools/version.ps1
+pwsh tools/version.ps1 0.200.1
+```
+
+Die Einträge `plugin` und `api` in `gradle/libs.versions.toml` lässt das
+Skript in Ruhe. Sie sind die Werkzeuge, mit denen die Mods gebaut werden, nicht
+die Versionen der Mods selbst.
+
+#### Reihenfolge der Versionierung
+
+Eine Änderung in einem Repository erreicht Spieler nur über Releases der
+Repositories, die davon abhängen. Was nach einer Änderung anzuheben ist:
+
+| Was sich geändert hat | Was als Nächstes anzufassen ist |
+|---|---|
+| `mappings` | Keine eigenen Releases. `coderpack` erzeugt `addr.js` neu und veröffentlicht, danach weiter wie beim Agenten |
+| Der Agent in `coderpack` | Ein `coderpack`-Release, dann der `coderpack`-Pin in `protocol/dependencies.json` und ein `protocol`-Release, dann beide Pins in `launcher/dependencies.json` und ein `launcher`-Release |
+| `zygote` | Ein `coderpack`-Release, der `coderpack`-Pin in `launcher/dependencies.json` und ein `launcher`-Release |
+| `api` oder `api-kotlin` | Ein `coderpack`-Release und Publish in Central. Danach `apiVersion` in den Vorlagen von `build`, `api` in `mods/gradle/libs.versions.toml` und der Pin in `launcher/dependencies.json` |
+| Die Nummer des API-Vertrags | Eine Änderung an drei Stellen zugleich: `Api.VERSION` in `coderpack`, `Verifier.API` in `build`, `mods.API` in `launcher`. Die CI von `coderpack` vergleicht alle drei mit dem `master` der Nachbarn und schlägt fehl, bis `build` und `launcher` gepusht sind. Die Veröffentlichung blockiert das nicht |
+| `protocol` | Der `protocol`-Pin in `launcher/dependencies.json` und ein `launcher`-Release |
+| `build` (Plugin, Linter, Vorlagen) | Ein `build`-Release und Publish in Central. Danach `plugin` in `mods/gradle/libs.versions.toml`, der CLI-Pin in `mods/dependencies.json` und `coderpack` in `idea/gradle/libs.versions.toml` |
+| `launcher`, `idea`, ein Mod in `mods` | Nichts weiter: Von ihnen hängt niemand ab |
+| `site` | Keine Releases. Die Beispiele auf der Seite werden zuletzt aktualisiert, nach allen Releases |
+
+Für eine Änderung, die die ganze Kette durchläuft, gilt diese Reihenfolge:
+
+1. `mappings`
+2. `coderpack`, danach Publish in Central
+3. `build`, erst wenn das neue `api` tatsächlich in Central liegt, danach
+   erneut Publish
+4. `protocol` mit angehobenem `coderpack`-Pin
+5. `launcher` mit angehobenen Pins für `protocol` und `coderpack`
+6. `mods` nach dem Publish aus den Schritten 2 und 3
+7. `idea`, sobald Central das POM des neuen `templates` ausliefert
+8. `site`
+
+Ein Upload nach Central ist noch kein Release: Ein Artefakt ist erst auflösbar,
+wenn jemand im Portal auf Publish drückt. Vor dem Anheben eines Pins auf ein
+Maven-Artefakt lohnt sich daher eine Anfrage nach seinem POM.
 
 ## Zum Schluss
 

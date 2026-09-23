@@ -141,7 +141,7 @@ required. Setting `apiVersion` adds `dev.ancaria.coderpack:api` as a
 
 ```kotlin
 plugins {
-    id("dev.ancaria.coderpack") version "0.101.0"
+    id("dev.ancaria.coderpack") version "0.200.0"
 }
 
 version = "1.0.0"
@@ -150,52 +150,72 @@ sacred {
     id = "double-gold"
     displayName = "Double Gold"
     entrypoint = "demo.DoubleGold"
-    apiVersion = "0.102.0"
+    apiVersion = "0.200.0"
     author("you")
 }
 ```
 
-Add the mod class at `src/main/java/demo/DoubleGold.java`:
+Add the mod class at `src/main/java/demo/DoubleGold.java`. The entry point
+extends the `SacredMod` class:
 
 ```java
 package demo;
 
-import dev.ancaria.coderpack.api.Context;
 import dev.ancaria.coderpack.api.SacredMod;
+import dev.ancaria.coderpack.api.Subscribe;
 import dev.ancaria.coderpack.api.event.Gold;
 
-public final class DoubleGold implements SacredMod {
+public final class DoubleGold extends SacredMod {
 
     @Override
-    public void onLoad(Context context) {
-        context.events().decide(Gold.class, e -> e.spending()
-                ? Gold.Mutation.none()
-                : Gold.Mutation.change(e.value() * 2));
+    public void onLoad() {
+        getContext().getRegistry().getEventRegistry().register(this);
+    }
+
+    @Subscribe
+    public Gold.Mutation onGold(Gold event) {
+        if (event.isSpending()) {
+            return Gold.Mutation.none();
+        }
+        return Gold.Mutation.change(event.getValue() * 2);
     }
 }
 ```
 
 Run `gradlew assembleSacredMod`. The resulting mod doubles positive gold
-changes and leaves spending unchanged. `decide` registers a lambda that answers
-with a `Gold.Mutation`, and `on` registers one that only observes. Both return
-a `Handle` that can unregister it. You can instead annotate a public
-one-parameter method with `@Subscribe`. It returns `void` to observe or the
-event's `Mutation` to decide, and the annotation also supports `priority` and
-`ignoreVetoed`.
+changes and leaves spending unchanged. The loader creates the instance itself
+and hands it `getContext()`, while `onLoad` and `onUnload` mark the start and
+end of the mod's life. `register(this)` turns every public one-parameter method
+annotated with `@Subscribe` into a listener. Such a method returns `void` to
+observe or the event's `Mutation` to decide, and the annotation also supports
+`priority` and `ignoreVetoed`. Without annotations, `on` and `decide` on
+`getEventRegistry()` do the same with a lambda. Both return a `Handle` that can
+unregister it.
 
 The `Gold` event arrives before the game applies the change. Events are
 read-only, so the returned mutation is what changes the amount the game
-writes. `value()` is the delta with earlier listeners folded in. Other event
-classes are in `dev.ancaria.coderpack.api.event`.
+writes. `getValue()` is the delta with earlier listeners folded in. Other event
+classes are in `dev.ancaria.coderpack.api.event`. `getContext().log(...)`
+appends a line to `logs/mods.log` in the game folder.
 
 A Kotlin mod can say the same thing through
 `dev.ancaria.coderpack:api-kotlin`, which every project from
 `coderpack new --language kotlin` already depends on. The event becomes a type
-argument and a getter becomes a property, so the listener above is
-`on<Gold> { if (!it.spending) mutate { Gold.Mutation.change(it.value * 2) } }`.
+argument and a getter becomes a property:
+
+```kotlin
+class DoubleGold : SacredMod() {
+
+    override fun onLoad() {
+        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
+    }
+}
+```
+
 `mutate` exists only for an event that can be decided. The module forwards to
 the Java API and adds nothing to it, so a Kotlin mod that ignores it works the
-same way.
+same way. The scaffolder's third language, Groovy, is chosen with
+`--language groovy`, and its runtime is packed into the mod jar.
 
 ### Building it
 
@@ -235,12 +255,12 @@ What each one produces:
 | Repository | Built with | What comes out |
 |---|---|---|
 | `mappings` | `python mappings.generator.py` | `mappings.json`, the address registry consumed by the agent build |
-| `coderpack` | `gradlew build` | `api-0.102.0.jar`, `api-kotlin-0.102.0.jar`, and `zygote-0.102.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
+| `coderpack` | `gradlew build` | `api-0.200.0.jar`, `api-kotlin-0.200.0.jar`, and `zygote-0.200.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
 | `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host, with the agent minified inside it |
-| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.101.0.zip` distribution |
+| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.200.0.zip` distribution |
 | `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host and jars embedded |
 | `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.101.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
+| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.200.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
 | `site` | `pnpm build` | A `dist/` directory. On `master`, CI deploys it to Cloudflare, and this repository publishes no release |
 
 `research` has no build output. It records the scripts, probes, and notes used
@@ -252,7 +272,7 @@ matching `v<version>` tag does not exist, then creates that tag. Releasing a new
 version therefore requires changing the repository's version first. Mod
 releases are published one at a time under tags of the form `<id>-v<version>`.
 
-### Updating versions
+### Working with versions
 
 The version number does not live in one file. It is scattered across
 `gradle.properties`, `Cargo.toml`, a README, sometimes a comment sitting in
@@ -265,8 +285,63 @@ every spot in that repository in one pass:
 
 ```
 pwsh tools/version.ps1
-pwsh tools/version.ps1 0.99.1
+pwsh tools/version.ps1 0.200.1
 ```
+
+The script changes only the repository's own version. Pins on other
+repositories' releases, in `dependencies.json` or a Gradle version catalog,
+stay where they are: raising those is a separate, deliberate commit.
+
+#### Batch update
+
+> [!NOTE]
+> Available only when every version inside the one repository already agrees.
+
+In `mods`, each mod keeps its own version in its `build.gradle.kts`, and there
+is no single source. `mods/tools/version.ps1` raises all four mods in one call,
+but only when they already match. If even one differs, the script prints all
+four versions and stops, and the mismatch has to be resolved by hand first:
+
+```
+pwsh tools/version.ps1
+pwsh tools/version.ps1 0.200.1
+```
+
+The script leaves the `plugin` and `api` entries in `gradle/libs.versions.toml`
+alone. They are the toolchain the mods build against, not the mods' own
+versions.
+
+#### Versioning order
+
+A change in one repository reaches a player only through releases of the
+repositories that depend on it. What to raise after a change:
+
+| What changed | What to touch next |
+|---|---|
+| `mappings` | No release of its own. `coderpack` regenerates `addr.js` and releases, then continue as for the agent |
+| The agent in `coderpack` | A `coderpack` release, then the `coderpack` pin in `protocol/dependencies.json` and a `protocol` release, then both pins in `launcher/dependencies.json` and a `launcher` release |
+| `zygote` | A `coderpack` release, the `coderpack` pin in `launcher/dependencies.json`, and a `launcher` release |
+| `api` or `api-kotlin` | A `coderpack` release and Publish in Central. Then `apiVersion` in the `build` templates, `api` in `mods/gradle/libs.versions.toml`, and the pin in `launcher/dependencies.json` |
+| The API contract number | One edit in three places at once: `Api.VERSION` in `coderpack`, `Verifier.API` in `build`, `mods.API` in `launcher`. `coderpack` CI compares all three against the siblings' `master` and fails until `build` and `launcher` are pushed. It does not block publishing |
+| `protocol` | The `protocol` pin in `launcher/dependencies.json` and a `launcher` release |
+| `build` (plugin, linter, templates) | A `build` release and Publish in Central. Then `plugin` in `mods/gradle/libs.versions.toml`, the CLI pin in `mods/dependencies.json`, and `coderpack` in `idea/gradle/libs.versions.toml` |
+| `launcher`, `idea`, a mod in `mods` | Nothing further: nothing depends on them |
+| `site` | No releases. Its examples are updated last, after every release |
+
+For a change that runs through the whole chain, the order is:
+
+1. `mappings`
+2. `coderpack`, then Publish in Central
+3. `build`, only once the new `api` is actually in Central, then Publish again
+4. `protocol` with its `coderpack` pin raised
+5. `launcher` with its `protocol` and `coderpack` pins raised
+6. `mods`, after the Publish from steps 2 and 3
+7. `idea`, once Central serves the POM for the new `templates`
+8. `site`
+
+A Central upload is not a Central release: an artifact becomes resolvable only
+once somebody presses Publish in the portal. Before raising a pin on a Maven
+artifact, request its POM.
 
 The project began as a proof of concept and does not promise support.
 
