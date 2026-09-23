@@ -287,7 +287,7 @@ Tag `v<Version>` noch nicht existiert, und legt dieses Tag anschließend an.
 Eine neue Versionsnummer löst damit den nächsten Release aus. Mods werden
 einzeln unter Tags der Form `<id>-v<Version>` veröffentlicht.
 
-### Versionen aktualisieren
+### Arbeit mit Versionen
 
 Die Versionsnummer steht nicht an einer Stelle. Sie verteilt sich auf
 `gradle.properties`, `Cargo.toml`, ein README, manchmal sogar auf einen
@@ -300,8 +300,65 @@ jeder Stelle in diesem Repository in einem Durchgang neu:
 
 ```
 pwsh tools/version.ps1
-pwsh tools/version.ps1 0.99.1
+pwsh tools/version.ps1 0.200.1
 ```
+
+Das Skript ändert nur die eigene Version des Repositorys. Pins auf Releases
+anderer Repositories in `dependencies.json` oder in einem Gradle-Versionskatalog
+bleiben unberührt: Sie werden in einem eigenen, bewussten Commit angehoben.
+
+#### Aktualisierung im Paket
+
+> [!NOTE]
+> Nur möglich, wenn alle Versionen innerhalb des einen Repositorys bereits übereinstimmen.
+
+In `mods` trägt jeder Mod seine eigene Version in seiner `build.gradle.kts`,
+eine gemeinsame Quelle gibt es nicht. `mods/tools/version.ps1` hebt alle vier
+Mods in einem Aufruf an, aber nur, wenn sie bereits gleich sind. Weicht auch nur
+einer ab, gibt das Skript alle vier Versionen aus und bricht ab; die Abweichung
+muss zuerst von Hand bereinigt werden:
+
+```
+pwsh tools/version.ps1
+pwsh tools/version.ps1 0.200.1
+```
+
+Die Einträge `plugin` und `api` in `gradle/libs.versions.toml` lässt das
+Skript in Ruhe. Sie sind die Werkzeuge, mit denen die Mods gebaut werden, nicht
+die Versionen der Mods selbst.
+
+#### Reihenfolge der Versionierung
+
+Eine Änderung in einem Repository erreicht Spieler nur über Releases der
+Repositories, die davon abhängen. Was nach einer Änderung anzuheben ist:
+
+| Was sich geändert hat | Was als Nächstes anzufassen ist |
+|---|---|
+| `mappings` | Keine eigenen Releases. `coderpack` erzeugt `addr.js` neu und veröffentlicht, danach weiter wie beim Agenten |
+| Der Agent in `coderpack` | Ein `coderpack`-Release, dann der `coderpack`-Pin in `protocol/dependencies.json` und ein `protocol`-Release, dann beide Pins in `launcher/dependencies.json` und ein `launcher`-Release |
+| `zygote` | Ein `coderpack`-Release, der `coderpack`-Pin in `launcher/dependencies.json` und ein `launcher`-Release |
+| `api` oder `api-kotlin` | Ein `coderpack`-Release und Publish in Central. Danach `apiVersion` in den Vorlagen von `build`, `api` in `mods/gradle/libs.versions.toml` und der Pin in `launcher/dependencies.json` |
+| Die Nummer des API-Vertrags | Eine Änderung an drei Stellen zugleich: `Api.VERSION` in `coderpack`, `Verifier.API` in `build`, `mods.API` in `launcher`. Die CI von `coderpack` vergleicht alle drei mit dem `master` der Nachbarn und schlägt fehl, bis `build` und `launcher` gepusht sind. Die Veröffentlichung blockiert das nicht |
+| `protocol` | Der `protocol`-Pin in `launcher/dependencies.json` und ein `launcher`-Release |
+| `build` (Plugin, Linter, Vorlagen) | Ein `build`-Release und Publish in Central. Danach `plugin` in `mods/gradle/libs.versions.toml`, der CLI-Pin in `mods/dependencies.json` und `coderpack` in `idea/gradle/libs.versions.toml` |
+| `launcher`, `idea`, ein Mod in `mods` | Nichts weiter: Von ihnen hängt niemand ab |
+| `site` | Keine Releases. Die Beispiele auf der Seite werden zuletzt aktualisiert, nach allen Releases |
+
+Für eine Änderung, die die ganze Kette durchläuft, gilt diese Reihenfolge:
+
+1. `mappings`
+2. `coderpack`, danach Publish in Central
+3. `build`, erst wenn das neue `api` tatsächlich in Central liegt, danach
+   erneut Publish
+4. `protocol` mit angehobenem `coderpack`-Pin
+5. `launcher` mit angehobenen Pins für `protocol` und `coderpack`
+6. `mods` nach dem Publish aus den Schritten 2 und 3
+7. `idea`, sobald Central das POM des neuen `templates` ausliefert
+8. `site`
+
+Ein Upload nach Central ist noch kein Release: Ein Artefakt ist erst auflösbar,
+wenn jemand im Portal auf Publish drückt. Vor dem Anheben eines Pins auf ein
+Maven-Artefakt lohnt sich daher eine Anfrage nach seinem POM.
 
 ## Zum Schluss
 

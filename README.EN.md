@@ -272,7 +272,7 @@ matching `v<version>` tag does not exist, then creates that tag. Releasing a new
 version therefore requires changing the repository's version first. Mod
 releases are published one at a time under tags of the form `<id>-v<version>`.
 
-### Updating versions
+### Working with versions
 
 The version number does not live in one file. It is scattered across
 `gradle.properties`, `Cargo.toml`, a README, sometimes a comment sitting in
@@ -285,8 +285,63 @@ every spot in that repository in one pass:
 
 ```
 pwsh tools/version.ps1
-pwsh tools/version.ps1 0.99.1
+pwsh tools/version.ps1 0.200.1
 ```
+
+The script changes only the repository's own version. Pins on other
+repositories' releases, in `dependencies.json` or a Gradle version catalog,
+stay where they are: raising those is a separate, deliberate commit.
+
+#### Batch update
+
+> [!NOTE]
+> Available only when every version inside the one repository already agrees.
+
+In `mods`, each mod keeps its own version in its `build.gradle.kts`, and there
+is no single source. `mods/tools/version.ps1` raises all four mods in one call,
+but only when they already match. If even one differs, the script prints all
+four versions and stops, and the mismatch has to be resolved by hand first:
+
+```
+pwsh tools/version.ps1
+pwsh tools/version.ps1 0.200.1
+```
+
+The script leaves the `plugin` and `api` entries in `gradle/libs.versions.toml`
+alone. They are the toolchain the mods build against, not the mods' own
+versions.
+
+#### Versioning order
+
+A change in one repository reaches a player only through releases of the
+repositories that depend on it. What to raise after a change:
+
+| What changed | What to touch next |
+|---|---|
+| `mappings` | No release of its own. `coderpack` regenerates `addr.js` and releases, then continue as for the agent |
+| The agent in `coderpack` | A `coderpack` release, then the `coderpack` pin in `protocol/dependencies.json` and a `protocol` release, then both pins in `launcher/dependencies.json` and a `launcher` release |
+| `zygote` | A `coderpack` release, the `coderpack` pin in `launcher/dependencies.json`, and a `launcher` release |
+| `api` or `api-kotlin` | A `coderpack` release and Publish in Central. Then `apiVersion` in the `build` templates, `api` in `mods/gradle/libs.versions.toml`, and the pin in `launcher/dependencies.json` |
+| The API contract number | One edit in three places at once: `Api.VERSION` in `coderpack`, `Verifier.API` in `build`, `mods.API` in `launcher`. `coderpack` CI compares all three against the siblings' `master` and fails until `build` and `launcher` are pushed. It does not block publishing |
+| `protocol` | The `protocol` pin in `launcher/dependencies.json` and a `launcher` release |
+| `build` (plugin, linter, templates) | A `build` release and Publish in Central. Then `plugin` in `mods/gradle/libs.versions.toml`, the CLI pin in `mods/dependencies.json`, and `coderpack` in `idea/gradle/libs.versions.toml` |
+| `launcher`, `idea`, a mod in `mods` | Nothing further: nothing depends on them |
+| `site` | No releases. Its examples are updated last, after every release |
+
+For a change that runs through the whole chain, the order is:
+
+1. `mappings`
+2. `coderpack`, then Publish in Central
+3. `build`, only once the new `api` is actually in Central, then Publish again
+4. `protocol` with its `coderpack` pin raised
+5. `launcher` with its `protocol` and `coderpack` pins raised
+6. `mods`, after the Publish from steps 2 and 3
+7. `idea`, once Central serves the POM for the new `templates`
+8. `site`
+
+A Central upload is not a Central release: an artifact becomes resolvable only
+once somebody presses Publish in the portal. Before raising a pin on a Maven
+artifact, request its POM.
 
 The project began as a proof of concept and does not promise support.
 

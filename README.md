@@ -273,7 +273,7 @@ done
 релиза нужно поднять номер версии. Моды выпускаются по одному с тегами вида
 `<id>-v<версия>`.
 
-### Обновление версий
+### Работа с версиями
 
 Номер версии живёт не в одном файле. Он размазан по `gradle.properties`,
 `Cargo.toml`, README, иногда ещё и по комментарию где-то в коде. Забыть один
@@ -286,8 +286,64 @@ done
 
 ```
 pwsh tools/version.ps1
-pwsh tools/version.ps1 0.99.1
+pwsh tools/version.ps1 0.200.1
 ```
+
+Скрипт меняет только собственную версию репозитория. Пины чужих релизов в
+`dependencies.json` и в каталоге версий Gradle он не трогает: их поднимают
+отдельным осознанным коммитом.
+
+#### Обновление пачкой
+
+> [!NOTE]
+> Доступно, только если все версии внутри одного репозитория уже одинаковые.
+
+В `mods` у каждого мода своя версия в его `build.gradle.kts`, и единого
+источника нет. `mods/tools/version.ps1` поднимает все четыре мода за один
+вызов, но только когда они уже совпадают. Если хотя бы один мод отличается,
+скрипт печатает все четыре версии и останавливается, а расхождение нужно
+сначала разрешить вручную:
+
+```
+pwsh tools/version.ps1
+pwsh tools/version.ps1 0.200.1
+```
+
+Записи `plugin` и `api` в `gradle/libs.versions.toml` скрипт не меняет. Это
+версии инструментов, которыми собираются моды, а не версии самих модов.
+
+#### Порядок версионирования
+
+Изменение в одном репозитории доходит до игрока только через релизы тех, кто
+от него зависит. Что поднять после изменения:
+
+| Что изменилось | Что затронуть дальше |
+|---|---|
+| `mappings` | Своих релизов нет. `coderpack` заново генерирует `addr.js` и выпускает релиз, дальше как для агента |
+| Агент в `coderpack` | Релиз `coderpack`, затем пин `coderpack` в `protocol/dependencies.json` и релиз `protocol`, затем оба пина в `launcher/dependencies.json` и релиз `launcher` |
+| `zygote` | Релиз `coderpack`, пин `coderpack` в `launcher/dependencies.json` и релиз `launcher` |
+| `api` или `api-kotlin` | Релиз `coderpack` и Publish в Central. Затем `apiVersion` в шаблонах `build`, `api` в `mods/gradle/libs.versions.toml` и пин в `launcher/dependencies.json` |
+| Номер API-контракта | Меняется одной правкой в трёх местах сразу: `Api.VERSION` в `coderpack`, `Verifier.API` в `build`, `mods.API` в `launcher`. CI `coderpack` сверяет все три с `master` соседей и падает, пока `build` и `launcher` не запушены. Публикации это не мешает |
+| `protocol` | Пин `protocol` в `launcher/dependencies.json` и релиз `launcher` |
+| `build` (плагин, линтер, шаблоны) | Релиз `build` и Publish в Central. Затем `plugin` в `mods/gradle/libs.versions.toml`, пин CLI в `mods/dependencies.json` и `coderpack` в `idea/gradle/libs.versions.toml` |
+| `launcher`, `idea`, мод из `mods` | Дальше ничего: от них никто не зависит |
+| `site` | Релизов нет. Примеры на странице обновляются последними, после всех релизов |
+
+Для изменения, которое проходит всю цепочку, порядок такой:
+
+1. `mappings`
+2. `coderpack`, затем Publish в Central
+3. `build`, только когда `api` новой версии уже есть в Central, затем снова
+   Publish
+4. `protocol` с поднятым пином `coderpack`
+5. `launcher` с поднятыми пинами `protocol` и `coderpack`
+6. `mods` после Publish из шагов 2 и 3
+7. `idea`, когда POM `templates` новой версии уже отдаётся из Central
+8. `site`
+
+Загрузка в Central ещё не релиз: артефакт становится доступен, только когда в
+портале нажата кнопка Publish. Поэтому перед тем как поднимать пин на
+Maven-артефакт, стоит запросить его POM.
 
 ## Напоследок
 
