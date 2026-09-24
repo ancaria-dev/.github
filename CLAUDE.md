@@ -320,7 +320,7 @@ Every repository keeps `README.md` in Russian, `README.EN.md`, and
 8. Лицензия / License / Lizenz.
 
 Leave out a section that has nothing to say. Loader-wide build and release
-steps live in the root `CONTRIBUTING` files; a component README links there
+steps live in the root `CONTRIBUTING` files. A component README links there
 instead of repeating them. The root READMEs speak to players and mod authors
 first, and `profile/` mirrors them with `../` links.
 
