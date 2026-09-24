@@ -276,6 +276,62 @@ raise `pluginVersion` in `idea`.
 - Read `mappings/CLAUDE.md` before changing any address. Read the owning
   repository’s `CLAUDE.md` before changing its code.
 
+## Typography
+
+These rules cover every text a reader sees: READMEs, the site, launcher
+strings, release notes, and plugin descriptions. Code, identifiers, paths,
+and commands inside backticks keep their literal characters.
+
+### Style in every language
+
+- Lead with the reader. A player wants to know what they get and how to start.
+  Internals belong in the developer section or the owning repository, and
+  each fact lives in one place that the others link to.
+- Connect sentences. Each one follows from the last. Do not jump from history
+  to a feature without the step between them.
+- Use active voice and strong verbs. Name who acts: the launcher, the host,
+  the mod, you.
+- One idea per sentence. Vary sentence length. Keep paragraphs to two or three
+  sentences.
+- Cut any word that carries no meaning. No filler openings, no summaries of
+  what was just said.
+- No bureaucratic noun chains. Write “we optimise”, not “the performing of the
+  optimisation”.
+- No clichés or AI filler: delve, tapestry, testament, crucial, beacon, look no
+  further, revolutionize, in conclusion, seamless, robust, leverage; «в
+  современном мире», «динамично развивающийся», «важно отметить»; „In der
+  heutigen, schnelllebigen Welt“, „Es ist wichtig zu betonen“, „Meilenstein“,
+  „einzigartig“, „ganzheitlich“.
+- Refer to me in the first person (“I”, «я», „ich“), never as “the author”.
+- Semicolons only inside complex lists. Otherwise use a full stop or a comma.
+
+### English
+
+- Curly quotes: “text”, and “text ‘inside’ text” for nested quotes.
+- Em dash without spaces (text—text) or en dash with spaces (text – text).
+  Never a hyphen as a dash.
+- Apostrophe for contractions and possessives: don't, it's, the user's guide.
+- Conversational but professional. Address the reader as “you”.
+
+### Russian
+
+- Quotes are «ёлочки». Nested quotes are „лапки“: «слово „слово“ слово».
+- The dash is an em dash with spaces: « — ». Never a hyphen.
+- Never an apostrophe in place of ъ.
+- Address the reader with «вы» in lower case. Avoid канцелярит: «осуществить
+  установку» becomes «установить».
+
+### German
+
+- Quotes are „Text“ (low opening, high closing).
+- The dash is an en dash with spaces: „Text – Text“. Never a hyphen.
+- No apostrophe for the genitive: Peters Auto. Only after s, z, or x: Max' Auto.
+- Address the reader with „du“, never „Sie“.
+- Avoid Nominalstil. Replace nouns in -ung, -heit, -keit with verbs:
+  „Wir optimieren“, not „Die Durchführung der Optimierung“.
+- Break up Schachtelsätze. Use modal particles (mal, ja, doch, halt) sparingly
+  and only in casual passages.
+
 ## Gotchas
 
 - If the game runs elevated, the host, launcher, and every attaching probe in
