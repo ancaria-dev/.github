@@ -22,7 +22,7 @@ between the game and Java.
 The launcher, host, and agent locate the game by trying `pureHD.exe`,
 `Sacred.exe`, then `Game.exe`, without regard to case. The address table still
 belongs to the supported `pureHD.exe` build. The launcher reports the detected
-build before Play. On attach, the agent compares the bytes at its 20 hook sites
+build before Play. On attach, the agent compares the bytes at its 38 hook sites
 with the checked-in signatures and prints a console warning when they differ.
 Attaching to another executable name or build is allowed, but the warning does
 not make its addresses safe.
@@ -131,9 +131,8 @@ Each repository can be developed without cloning the complete workspace.
 - `launcher` builds its `protocol` and `coderpack` siblings from source when
   they are available, coderpack first so the address table exists before the
   host is built around it. Otherwise it downloads the releases pinned in
-  `launcher/dependencies.json`, currently `protocol` and `coderpack` at
-  `0.101.0` and `0.102.0`. The downloaded files are `protocol.exe`, `api.jar`, and
-  `zygote.jar`; the agent is inside the first of them. Run
+  `launcher/dependencies.json`. The downloaded files are `protocol.exe`,
+  `api.jar`, and `zygote.jar`. The agent is inside the first of them. Run
   `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
 - `idea` resolves the scaffolder as `dev.ancaria.coderpack:templates` from
   Maven Central, like any other dependency. Run `publishToMavenLocal` in
