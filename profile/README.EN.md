@@ -12,159 +12,51 @@
 
 # ancaria
 
-Sacred was released for Windows in 2004, followed by the Sacred Gold compilation
-in 2005. ancaria adds a mod loader to that 32-bit game. Mods are written in Java or Kotlin
-against an event API. The loader does not patch files in the game folder. Its
-hooks exist only in the running process and disappear when the game closes.
+A mod loader for Sacred Gold. You write mods in Java or Kotlin, and the loader
+plugs them into the game while it runs.
 
-A 32-bit process cannot host the 64-bit JVM used by the loader, so the system
-has three parts. A Rust host injects a JavaScript agent into the game and starts
-the JVM in a separate process. The agent hooks the game's instructions, the
-host carries line-based protocol messages between the agent and the JVM, and
-the JVM dispatches events to mods. A vetoable event blocks the game thread
-while it waits for a reply. When a mod is slow, the host answers `ok` on its
-behalf, usually 250 to 375 ms after the ask, so keep such handlers short.
+Sacred came out in 2004, and the Sacred Gold compilation followed in 2005. The
+game never got modding tools. ancaria fills that gap: your mod subscribes to
+game events, such as picking up gold, and decides what happens next.
 
-The project is for single-player use. It does not bypass DRM, provide the game,
-or redistribute game files. You need your own installed copy of Sacred Gold.
+Your game files stay untouched. The loader hooks the game only in memory, and
+the hooks disappear when the game closes.
 
-This repository contains no application code. It joins the project's group
-of repositories into one workspace. The front page at
-[ancaria.dev](https://ancaria.dev) is built from `site`.
+The project is for single-player use. It doesn't include the game, bypass DRM,
+or add multiplayer features. You need your own installed copy of Sacred Gold.
 
-## The repositories
+## Getting started
 
-| Repository | What it holds |
-|---|---|
-| [`mappings`](https://github.com/ancaria-dev/mappings) | The address registry for `pureHD.exe` 2.0.2.118. Each row records a virtual address, a relative virtual address, and its confidence level. |
-| [`research`](https://github.com/ancaria-dev/research) | Disassembly scripts, live probes, and research notes. None of it ships to players. |
-| [`coderpack`](https://github.com/ancaria-dev/coderpack) | The Frida agent, the Java API used by mods, its Kotlin extensions, the JVM-side loader, and the tools that generate the agent's address table. |
-| [`protocol`](https://github.com/ancaria-dev/protocol) | The wire protocol and the Rust host that connects the game process to the JVM. |
-| [`launcher`](https://github.com/ancaria-dev/launcher) | The Windows executable that installs the loader, manages mods, and starts the game. |
-| [`build`](https://github.com/ancaria-dev/build) | The Gradle plugin, mod linter, and `coderpack` project scaffolder. The Maven directory currently contains design notes only. |
-| [`mods`](https://github.com/ancaria-dev/mods) | The default SRML mod repository and the source for four mods. |
-| [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin, with a New Project wizard, a Run Sacred configuration, gutter icons, and loader settings. |
-| [`site`](https://github.com/ancaria-dev/site) | The source of [ancaria.dev](https://ancaria.dev): a React and Vite front end with no backend. CI builds it and ships it to Cloudflare. |
-
-### How the repositories depend on each other
-
-```mermaid
-graph LR
-    mappings --> coderpack
-    coderpack -->|agent| protocol
-    coderpack --> launcher
-    protocol --> launcher
-    mappings -.->|optional| launcher
-    build --> mods
-    coderpack --> mods
-    build --> idea
-```
-
-No cycles. A dashed edge is optional or test-only. `build` deliberately does
-not depend on `coderpack`: the linter and the templates use their own API stub
-instead of a real Maven dependency, which keeps this graph acyclic even though
-`coderpack`'s CI checks out `build` and `launcher` to compare an API-contract
-constant against their source: that is a source read for a check, not a
-publish-time dependency. `research` and `site` are not in the graph: nothing
-depends on them, and they depend on nothing.
-
-## For players
+### Play with mods
 
 1. Download `Sacred Mod Loader.exe` from the
    [releases](https://github.com/ancaria-dev/launcher/releases).
-2. Put the file in your Sacred Gold folder, beside the game's own executable.
-3. Run it, install the mods you want from the Available tab, then press Play.
+2. Put it in your Sacred Gold folder, next to the game's executable.
+3. Run it, pick mods on the Available tab, and press Play.
 
-The first run creates `launcher` and `mods` beside the game executable. The
-launcher looks for a JDK 21 or newer in `launcher\java`, `JAVA_HOME`, and PATH,
-in that order. If it cannot find one, the game can still start, but mods do not
-load. The "Get Java" panel downloads a chosen JDK to `launcher\java`. The
-launcher does not change PATH, write a registry key, or install Java elsewhere.
+Mods need Java 21 or newer. If you don't have it, the launcher offers to
+download a suitable version into the game folder. It leaves your system alone:
+PATH and the Windows registry stay as they were. The
+[launcher README](https://github.com/ancaria-dev/launcher) has the details.
 
-The Available tab reads the default
-[mod repository](https://github.com/ancaria-dev/mods) and installs the mods you
-select. You can add another SRML repository by its HTTPS clone URL. Private
-repositories are supported when you provide a token.
+### Write a mod
 
-## For developers
+The easiest start is IntelliJ IDEA with the
+[Sacred Mod Development](https://plugins.jetbrains.com/plugin/34165-sacred-mod-development)
+plugin. It creates a project from File → New → Project → Sacred Mod and starts
+the game with your mod through a single Run Sacred button.
 
-### Writing a mod
-
-The quickest start is IntelliJ IDEA. The
-[Sacred Mod Development](https://plugins.jetbrains.com/plugin/34165-sacred-mod-development) plugin from
-the JetBrains Marketplace adds a File → New → Project → Sacred Mod wizard, a
-Run Sacred configuration that builds the mod and starts the game with it, and
-gutter icons on the entrypoint and its listeners.
-
-Without an IDE, the command line writes the same project. Each [build](https://github.com/ancaria-dev/build/releases) release includes the
-`coderpack` command-line distribution. Unpack it, add its `bin` directory to
-PATH, and create a project with:
+Without an IDE, the `coderpack` command from the
+[build releases](https://github.com/ancaria-dev/build/releases) creates the
+same project:
 
 ```
 coderpack new my-mod
 ```
 
-The generated `my-mod/` project includes a Gradle wrapper, a configured
-`sacred { }` block, and one event listener. Run
-`gradlew assembleSacredMod` to build the jar under `build/sacred-mod`.
-`coderpack help` lists options for the package, display name, author, language,
-build DSL, and other project settings.
-
-To try unreleased changes, build the command line from a local `build`
-checkout. Run `./gradlew :templates:installDist` from its `gradle` directory.
-
-You can also create the Java project yourself. It needs three files.
-
-Use this `settings.gradle.kts` to resolve the plugin and API:
-
-```kotlin
-pluginManagement {
-    repositories {
-        mavenLocal()
-        gradlePluginPortal()
-    }
-}
-
-dependencyResolutionManagement {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-    }
-}
-
-rootProject.name = "double-gold"
-```
-
-The `build.gradle.kts` file describes the mod. Only `id` and `entrypoint` are
-required. Setting `apiVersion` adds `dev.ancaria.coderpack:api` as a
-`compileOnly` dependency:
-
-```kotlin
-plugins {
-    id("dev.ancaria.coderpack") version "0.200.0"
-}
-
-version = "1.0.0"
-
-sacred {
-    id = "double-gold"
-    displayName = "Double Gold"
-    entrypoint = "demo.DoubleGold"
-    apiVersion = "0.200.0"
-    author("you")
-}
-```
-
-Add the mod class at `src/main/java/demo/DoubleGold.java`. The entry point
-extends the `SacredMod` class:
+Here's a mod that doubles the gold you pick up:
 
 ```java
-package demo;
-
-import dev.ancaria.coderpack.api.SacredMod;
-import dev.ancaria.coderpack.api.Subscribe;
-import dev.ancaria.coderpack.api.event.Gold;
-
 public final class DoubleGold extends SacredMod {
 
     @Override
@@ -182,185 +74,60 @@ public final class DoubleGold extends SacredMod {
 }
 ```
 
-Run `gradlew assembleSacredMod`. The resulting mod doubles positive gold
-changes and leaves spending unchanged. The loader creates the instance itself
-and hands it `getContext()`, while `onLoad` and `onUnload` mark the start and
-end of the mod's life. `register(this)` turns every public one-parameter method
-annotated with `@Subscribe` into a listener. Such a method returns `void` to
-observe or the event's `Mutation` to decide, and the annotation also supports
-`priority` and `ignoreVetoed`. Without annotations, `on` and `decide` on
-`getEventRegistry()` do the same with a lambda. Both return a `Handle` that can
-unregister it.
+`gradlew assembleSacredMod` builds a jar that the launcher installs like any
+other mod. [coderpack](https://github.com/ancaria-dev/coderpack) explains the
+API, lists the events, and shows the Kotlin version.
+[build](https://github.com/ancaria-dev/build) covers the build settings.
 
-The `Gold` event arrives before the game applies the change. Events are
-read-only, so the returned mutation is what changes the amount the game
-writes. `getValue()` is the delta with earlier listeners folded in. Other event
-classes are in `dev.ancaria.coderpack.api.event`. `getContext().log(...)`
-appends a line to `logs/mods.log` in the game folder.
+## How it works
 
-A Kotlin mod can say the same thing through
-`dev.ancaria.coderpack:api-kotlin`, which every project from
-`coderpack new --language kotlin` already depends on. The event becomes a type
-argument and a getter becomes a property:
+Sacred is a 32-bit game, and the Java that runs mods is 64-bit. They can't
+share a process, so the loader has three parts. An agent inside the game
+catches its events. A JVM in a separate process hands them to mods. A Rust host
+connects the two.
 
-```kotlin
-class DoubleGold : SacredMod() {
+A mod can cancel or change some events. The game then waits for its answer.
+If the mod runs late, the host answers “change nothing” on its behalf, usually
+after 250–375 ms. Keep those handlers short.
 
-    override fun onLoad() {
-        context.on<Gold> { if (!it.isSpending) mutate { Gold.Mutation.change(it.value * 2) } }
-    }
-}
-```
+## Repositories
 
-`mutate` exists only for an event that can be decided. The module forwards to
-the Java API and adds nothing to it, so a Kotlin mod that ignores it works the
-same way. The scaffolder's third language, Groovy, is chosen with
-`--language groovy`, and its runtime is packed into the mod jar.
-
-### Building it
-
-The repositories are designed to build independently. `coderpack` downloads
-`mappings.json` at the revision in `.mappings-ref` when no local registry is
-available. For GitHub releases of another repository (not a Maven
-coordinate, which a build tool already versions) `protocol`, `launcher` and `mods` each
-keep a `dependencies.json` pinning an exact version, never "latest", so a bad
-release elsewhere cannot break the build unannounced. A sibling checkout still
-wins over the pin when one is present. `mods` resolves the Gradle plugin and
-Java API from the Gradle Plugin Portal and Maven Central, and `idea` resolves
-the `coderpack` templates from Maven Central.
-
-Clone only the repository you want to change:
-
-```
-git clone https://github.com/ancaria-dev/coderpack.git
-```
-
-For a side-by-side checkout, clone this repository and the rest of the group
-inside it, each under its own name. The builds find their siblings by those
-names:
-
-```
-git clone https://github.com/ancaria-dev/.github.git ancaria
-cd ancaria
-for repo in mappings research coderpack protocol launcher build mods idea site; do
-    git clone https://github.com/ancaria-dev/$repo.git
-done
-```
-
-The `ancaria.code-workspace` file opens the root and every project directory
-that is present in one VS Code window.
-
-What each one produces:
-
-| Repository | Built with | What comes out |
-|---|---|---|
-| `mappings` | `python mappings.generator.py` | `mappings.json`, the address registry consumed by the agent build |
-| `coderpack` | `gradlew build` | `api-0.200.0.jar`, `api-kotlin-0.200.0.jar`, and `zygote-0.200.0.jar`. CI also packs the generated agent as the `agent.zip` release asset |
-| `protocol` | `cargo build --release` | `target/release/protocol.exe`, the Rust host, with the agent minified inside it |
-| `build` | `./gradlew build` in `gradle` | The Gradle plugin, linter, scaffolder, and `coderpack-0.200.0.zip` distribution |
-| `launcher` | `pwsh tools/build.ps1` | `dist/Sacred Mod Loader.exe` with the host and jars embedded |
-| `mods` | `gradlew assembleSacredMod` | Four linted mod jars. Run `coderpack index` separately to regenerate `sacred.mods.repository.json` |
-| `idea` | `./gradlew buildPlugin` | `build/distributions/sacred-idea-0.200.0.zip`. On release, CI also uploads the plugin to the JetBrains Marketplace |
-| `site` | `pnpm build` | A `dist/` directory. On `master`, CI deploys it to Cloudflare, and this repository publishes no release |
-
-`research` has no build output. It records the scripts, probes, and notes used
-to identify game behavior. Every hook address comes from `mappings`, whose rows
-target `pureHD.exe` 2.0.2.118.
-
-Each publishing repository stores its own version. CI publishes only when the
-matching `v<version>` tag does not exist, then creates that tag. Releasing a new
-version therefore requires changing the repository's version first. Mod
-releases are published one at a time under tags of the form `<id>-v<version>`.
-
-### Working with versions
-
-The version number does not live in one file. It is scattered across
-`gradle.properties`, `Cargo.toml`, a README, sometimes a comment sitting in
-plain view in the code. Miss one of those spots and the built release quietly
-drifts from what the docs say.
-
-Every repository that has a version also has `tools/version.ps1`. Run it with
-no argument and it prints the current one. Give it a new one and it rewrites
-every spot in that repository in one pass:
-
-```
-pwsh tools/version.ps1
-pwsh tools/version.ps1 0.200.1
-```
-
-The script changes only the repository's own version. Pins on other
-repositories' releases, in `dependencies.json` or a Gradle version catalog,
-stay where they are: raising those is a separate, deliberate commit.
-
-#### Batch update
-
-> [!NOTE]
-> Available only when every version inside the one repository already agrees.
-
-In `mods`, each mod keeps its own version in its `build.gradle.kts`, and there
-is no single source. `mods/tools/version.ps1` raises all four mods in one call,
-but only when they already match. If even one differs, the script prints all
-four versions and stops, and the mismatch has to be resolved by hand first:
-
-```
-pwsh tools/version.ps1
-pwsh tools/version.ps1 0.200.1
-```
-
-The script leaves the `plugin` and `api` entries in `gradle/libs.versions.toml`
-alone. They are the toolchain the mods build against, not the mods' own
-versions.
-
-#### Versioning order
-
-A change in one repository reaches a player only through releases of the
-repositories that depend on it. What to raise after a change:
-
-| What changed | What to touch next |
+| Repository | What's inside |
 |---|---|
-| `mappings` | No release of its own. `coderpack` regenerates `addr.js` and releases, then continue as for the agent |
-| The agent in `coderpack` | A `coderpack` release, then the `coderpack` pin in `protocol/dependencies.json` and a `protocol` release, then both pins in `launcher/dependencies.json` and a `launcher` release |
-| `zygote` | A `coderpack` release, the `coderpack` pin in `launcher/dependencies.json`, and a `launcher` release |
-| `api` or `api-kotlin` | A `coderpack` release and Publish in Central. Then `apiVersion` in the `build` templates, `api` in `mods/gradle/libs.versions.toml`, and the pin in `launcher/dependencies.json` |
-| The API contract number | One edit in three places at once: `Api.VERSION` in `coderpack`, `Verifier.API` in `build`, `mods.API` in `launcher`. `coderpack` CI compares all three against the siblings' `master` and fails until `build` and `launcher` are pushed. It does not block publishing |
-| `protocol` | The `protocol` pin in `launcher/dependencies.json` and a `launcher` release |
-| `build` (plugin, linter, templates) | A `build` release and Publish in Central. Then `plugin` in `mods/gradle/libs.versions.toml`, the CLI pin in `mods/dependencies.json`, and `coderpack` in `idea/gradle/libs.versions.toml` |
-| `launcher`, `idea`, a mod in `mods` | Nothing further: nothing depends on them |
-| `site` | No releases. Its examples are updated last, after every release |
+| [`launcher`](https://github.com/ancaria-dev/launcher) | The launcher. It installs the loader, manages mods, and starts the game. |
+| [`mods`](https://github.com/ancaria-dev/mods) | The official mod repository and the source of four mods. |
+| [`coderpack`](https://github.com/ancaria-dev/coderpack) | The Java and Kotlin API for mods, the in-game agent, and the JVM-side mod loader. |
+| [`build`](https://github.com/ancaria-dev/build) | The Gradle plugin, the linter, and the `coderpack` command for new projects. |
+| [`idea`](https://github.com/ancaria-dev/idea) | The IntelliJ IDEA plugin. |
+| [`protocol`](https://github.com/ancaria-dev/protocol) | The Rust host and the protocol between the game and the JVM. |
+| [`mappings`](https://github.com/ancaria-dev/mappings) | Addresses of game functions in `pureHD.exe` 2.0.2.118. |
+| [`research`](https://github.com/ancaria-dev/research) | The scripts and notes that found those addresses. |
+| [`site`](https://github.com/ancaria-dev/site) | The source of [ancaria.dev](https://ancaria.dev). |
 
-For a change that runs through the whole chain, the order is:
+This repository holds no code. It joins the others into one workspace.
 
-1. `mappings`
-2. `coderpack`, then Publish in Central
-3. `build`, only once the new `api` is actually in Central, then Publish again
-4. `protocol` with its `coderpack` pin raised
-5. `launcher` with its `protocol` and `coderpack` pins raised
-6. `mods`, after the Publish from steps 2 and 3
-7. `idea`, once Central serves the POM for the new `templates`
-8. `site`
+## Contributing
 
-A Central upload is not a Central release: an artifact becomes resolvable only
-once somebody presses Publish in the portal. Before raising a pin on a Maven
-artifact, request its POM.
+[CONTRIBUTING.EN.md](../CONTRIBUTING.EN.md) explains how to build the loader, how
+the repositories depend on each other, and in what order to release them.
 
-The project began as a proof of concept and does not promise support.
+## Acknowledgements
 
-## References
+The project grew out of a question I'd carried since childhood: twenty years
+on, could Sacred get a Forge-style mod loader? It started as a proof of
+concept, and I don't promise long-term support.
 
-Some of the findings in `research` and `mappings` build on earlier community
-work: reverse-engineering of the game's formats and structures in
+Some findings in `research` and `mappings` build on community work.
 [SacredGameTools](https://github.com/sonicmouse/SacredGameTools) and
-[sacred-sdk](https://github.com/bssth/sacred-sdk). The
-[pureHD](https://steamcommunity.com/app/12320/discussions/0/3191364450206457546/)
-modification is the base for the mods here — every address in `mappings`
-targets that exact `pureHD.exe` build.
+[sacred-sdk](https://github.com/bssth/sacred-sdk) took apart the game's formats
+and structures. Every address in `mappings` targets
+[pureHD](https://steamcommunity.com/app/12320/discussions/0/3191364450206457546/),
+and the mods run on top of that build.
 
-Thanks to the community that still keeps taking this 2004 game apart, even
-though the modern games industry long ago wrote it off. I've played Path of
-Exile, Path of Exile 2, Last Epoch, and Titan Quest since — none of
-them are it: not the atmosphere, not the vibe, not the same carefree, casual,
-and well-crafted game Sacred was. Games like it will never be made again, but
-it stays in the heart regardless.
+Thanks to everyone still taking this 2004 game apart. I've played Path of
+Exile, Path of Exile 2, Last Epoch, and Titan Quest, and none of them is it.
+None has the atmosphere, the carefree feel, or the craft Sacred had. Games like
+it won't be made again, but this one stays in my heart.
 
 ## License
 
