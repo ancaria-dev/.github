@@ -1,384 +1,158 @@
-# ancaria workspace root
+# ancaria workspace
 
-## Repository purpose
+## Working with me
 
-This is the organisation’s `.github` repository. It holds the workspace
-files that join the project repositories and nothing else. It contains no
-application code. The [ancaria.dev](https://ancaria.dev) front page is its own
-repository, `site`.
+- Chat with me in Russian. Code, commits, and CLAUDE.md files stay in English. READMEs follow the README template below.
+- In project prose, refer to me as "I"/"me", never "the author".
 
-## Project architecture
+## Workspace
 
-Sacred was released in 2004. The Sacred Gold compilation followed in 2005.
-ancaria is a mod loader for Sacred Gold. Mods are written in Java or Kotlin
-against an event API and loaded while the game is running.
+- This root repository is the organisation's `.github` repository. It holds workspace files only: guides, READMEs, CONTRIBUTING, `profile/`, `.gitmodules`, `ancaria.code-workspace`, `renovate.json`. No application code.
+- The project directories are separate side-by-side clones of `https://github.com/ancaria-dev/<name>.git`, not gitlinks. Never `git add -A` from the root.
+- Every repository uses `master`. Each `.gitmodules` entry pins `branch = master`.
+- Never move or rename a project directory. Builds resolve siblings by these names, and a move silently switches a build to downloaded artifacts.
+- `ancaria.code-workspace` hides the project directories under the root so they do not appear twice.
 
-Every address in the project targets `pureHD.exe` 2.0.2.118, a 32-bit community
-HD wrapper with image base `0x00400000`. Those addresses do not target the stock
-`Sacred.exe`. The loader’s JVM is 64-bit and cannot run inside the 32-bit game
-process, so the Rust host runs it as a separate process and carries events
-between the game and Java.
+## Component guides
 
-The launcher, host, and agent locate the game by trying `pureHD.exe`,
-`Sacred.exe`, then `Game.exe`, without regard to case. The address table still
-belongs to the supported `pureHD.exe` build. The launcher reports the detected
-build before Play. On attach, the agent compares the bytes at its 38 hook sites
-with the checked-in signatures and prints a console warning when they differ.
-Attaching to another executable name or build is allowed, but the warning does
-not make its addresses safe.
+Read the owning guide before changing its code.
 
-    launcher   Installs the loader into the game folder and starts the host
-    protocol   Rust host that injects the agent with Frida, starts the JVM,
-               and routes frames in both directions
-    agent      JavaScript inside the game that hooks the game’s instructions
-    zygote     JVM-side loader that loads mod jars and dispatches events
-    mod        Java or Kotlin compiled against the coderpack API
+- `mappings/CLAUDE.md`: the address registry. Row format, VA/RVA, confidence levels, export tags, generator, parser traps.
+- `research/CLAUDE.md`: disassembly scripts and live probes. Evidence policy, research traps, and "Analysis tools" (Ghidra, capstone, radare2, angr, undname, pymem).
+- `coderpack/CLAUDE.md`: Frida agent, Java API, Kotlin API, zygote. Hook safety rules, address generation, API contract, release.
+- `protocol/CLAUDE.md`: wire protocol and Rust host. Transports, verdict deadline, embedded agent, host failure modes.
+- `launcher/CLAUDE.md`: the Go launcher. Payload, install layout, Java, pureHD, updater, mod install rules, Windows traps.
+- `build/CLAUDE.md`: Gradle plugin, mod linter, `coderpack` scaffolder and templates, SRML index.
+- `mods/CLAUDE.md`: the default SRML repository and its four mods.
+- `idea/CLAUDE.md`: the IntelliJ IDEA plugin.
+- `site/CLAUDE.md`: the ancaria.dev front end and its Cloudflare Worker.
 
-Observed events travel from agent to host to JVM asynchronously. A cancelable
-event travels as an `ASK` and stops the game thread while the mod decides. The
-host’s verdict deadline is 250 ms, but its watchdog scans every 125 ms and
-marks an ask overdue only after its age exceeds the deadline. The fallback
-`ok` verdict is therefore queued roughly 250 to 375 ms after the ask, plus
-scheduler and poster-loop delay. Keep cancelable handlers short and never
-describe 250 ms as a strict worst-case block time.
+## Project facts
 
-After installation, `<Sacred Gold>/launcher/` contains the host, jars, and
-`VERSION` file. Mods live in `<Sacred Gold>/mods`. There is no agent folder: the
-agent's JavaScript is minified into `protocol.exe` when the host is built, and
-the injected script is assembled in memory. An upgrade deletes the folder older
-versions left there.
+- ancaria is a mod loader for Sacred Gold. Mods are Java or Kotlin, written against an event API, loaded while the game runs.
+- Every address targets `pureHD.exe` 2.0.2.118, a 32-bit community HD wrapper, image base `0x00400000`. Never assume the stock `Sacred.exe` or any other build uses the same addresses.
+- The launcher, host, and agent find the game as `pureHD.exe`, `Sacred.exe`, then `Game.exe`, ignoring case. Detection is not compatibility. The agent's signature-mismatch warning does not make the addresses safe.
+- The game is 32-bit and the JVM is 64-bit, so they run as separate processes. The Rust host carries events between them.
+- A cancelable event is an `ASK` that stops the game thread while mods decide. Never describe its 250 ms deadline as a strict worst case. Details: `protocol/CLAUDE.md`.
+- The loader never patches game files on disk. Hooks live only in the running process.
+- The project is single-player only and needs a legally owned installed copy. Never add multiplayer features, DRM bypass, a game executable, or game files.
 
-The launcher looks for a JDK 21 or newer in `<Sacred Gold>/launcher/java`,
-then `JAVA_HOME`, then `PATH`. It continues past an older JDK and uses the
-first suitable one. If none is suitable, the launcher and game still run, but
-mods do not load. Get Java downloads a selected JDK into
-`<Sacred Gold>/launcher/java`. The launcher passes the chosen executable to
-the host with `--java`. It does not change `PATH`, write Java registry keys, or
-install the JDK outside the game folder.
+## Where changes go
 
-The loader does not patch the game files on disk. Hooks exist only in the
-running process and disappear when it exits. The project is for single-player
-use and requires a legally owned, installed copy of Sacred Gold. It provides no
-multiplayer features, DRM bypass, game executable, or redistributed game files.
+- Edit the repository that owns the change: addresses in `mappings`, hooks in `coderpack`, probes in `research`.
+- When a probe establishes an address or fact the loader uses, record it in `mappings`.
+- Never type a game address into code. Every address comes from a `mappings` row; a wrong RVA can give a hook that never fires and no error. Before changing any address, read `mappings/CLAUDE.md`.
+- Never copy files between repositories to skip a rebuild. Generate `mappings.json`, `agent/src/gen/addr.js`, and `launcher/install/payload/` with their owning commands.
+- `idea` and `coderpack new` share `dev.ancaria.coderpack:templates`. Never create a second copy of the templates.
 
-## Repository ownership
+## Cross-repository builds
 
-The project has nine component repositories at
-`https://github.com/ancaria-dev/<name>.git`, all cloned side by side here,
-including `idea`, the source for the IntelliJ IDEA plugin.
-
-| Directory | Owns |
-|---|---|
-| `mappings` | The address registry for `pureHD.exe` 2.0.2.118, including each VA, RVA, and confidence level. |
-| `research` | Disassembly scripts, live probes, and research notes. Nothing here ships to players. |
-| `coderpack` | The Frida agent in `agent/src`, the Java API in `api`, its Kotlin extensions in `api-kotlin`, the JVM-side loader in `zygote`, and the Python tools that read the address registry. |
-| `protocol` | The wire protocol and Rust host. It builds `protocol.exe`, with the agent minified inside it. |
-| `launcher` | The Go executable placed in the game folder. It embeds everything it installs. |
-| `build` | The Gradle plugin, mod linter, and `coderpack` project scaffolder. `build/maven` currently contains design notes only. |
-| `mods` | The default SRML repository, its index, and the source for four mods. |
-| `idea` | The IntelliJ IDEA plugin, including the New Project wizard, Run Sacred configuration, gutter icons, and loader settings. Its workflow is prepared for GitHub and JetBrains Marketplace publication. |
-| `site` | The ancaria.dev front end: React, Vite, and LESS modules, deployed to Cloudflare by its own CI. It reads no sibling checkout. |
-
-`ancaria.code-workspace` opens the workspace root and all nine project
-directories in one VS Code window. It hides those directories under the root so
-they do not appear twice in the file tree.
-
-Edit the repository that owns the change. Put addresses in `mappings`, hooks in
-`coderpack`, and investigative probes in `research`. When a probe establishes
-an address or fact used by the loader, record the result in `mappings`.
-
-## Checkout
-
-```text
-git clone https://github.com/ancaria-dev/.github.git ancaria
-cd ancaria
-for repo in mappings research coderpack protocol launcher build mods idea site; do
-    git clone https://github.com/ancaria-dev/$repo.git
-done
-```
-
-The project directories are separate clones, not gitlinks in the root index,
-so never `git add -A` from the root. The root repository and all nine project
-repositories use `master`. Each entry in
-`.gitmodules` pins `branch = master`.
-
-A full workspace is optional. Side-by-side checkouts provide direct source
-coupling. `coderpack` can generate its address table from `../mappings`,
-`protocol` can embed the agent from `../coderpack`, and `launcher` can build
-and stage both sibling projects without waiting for published artifacts.
-
-## Independent builds
-
-Each repository can be developed without cloning the complete workspace.
-
-- `coderpack` locates the registry in this order: a command-line path,
-  `$CODERPACK_MAPPINGS`, the sibling `../mappings`, then
-  `https://raw.githubusercontent.com/ancaria-dev/mappings/<ref>/mappings.json`.
-  Downloads are cached under `build/mappings/`. The ref comes from
-  `coderpack/.mappings-ref`, currently `master`. Use a tag or commit there when
-  the build must be reproducible. See `coderpack/tools/paths.py`.
-- `protocol` builds the agent into `protocol.exe`. It takes the JavaScript from
-  `$PROTOCOL_AGENT`, then the sibling `../coderpack/agent/src`, then the
-  `agent.zip` of the coderpack release pinned in `protocol/dependencies.json`,
-  cached under `protocol/build/agent/`. A lone clone therefore builds, because
-  the release asset carries the generated address table a fresh coderpack
-  checkout has not got. Its folder-reading bundler tests use
-  `protocol/tests/agent/`, a fixture owned by that repository. Its end-to-end
-  test searches for the newest coderpack `api` and `zygote` jars in
-  `../coderpack/*/build/libs` and then in
-  `~/.m2/repository/dev/ancaria/coderpack/`. It reports a skip when neither
-  location contains both jars, so the Rust build itself does not require a JDK.
-- `launcher` builds its `protocol` and `coderpack` siblings from source when
-  they are available, coderpack first so the address table exists before the
-  host is built around it. Otherwise it downloads the releases pinned in
-  `launcher/dependencies.json`. The downloaded files are `protocol.exe`,
-  `api.jar`, and `zygote.jar`. The agent is inside the first of them. Run
-  `pwsh tools/build.ps1 -Protocol none -Coderpack none` to force this path.
-- `idea` resolves the scaffolder as `dev.ancaria.coderpack:templates` from
-  Maven Central, like any other dependency. Run `publishToMavenLocal` in
-  `build` to test an unreleased template change. `mavenLocal()` is checked
-  first in `idea/build.gradle.kts` and overrides the released artifact when
-  present.
-- `build`, `mappings`, and `research` read no sibling checkout. `mods`
-  resolves the plugin and the API through the Gradle Plugin Portal and Maven
-  Central, and downloads the `coderpack` command line from the `ancaria-dev/build`
-  release pinned in `mods/dependencies.json` for `coderpack index --check`.
-- `launcher` ships no mods in its payload. At run time, players choose mods from
-  a visible SRML repository. The default is `mods`.
-
-A repository that needs a GitHub Release asset from another repository (not
-a Maven coordinate, which a build tool already versions) pins it in a
-`dependencies.json` at its root: `[{ "path": "ancaria-dev/<repo>", "version":
-"<version, no v prefix>" }]`. `protocol`, `launcher`, and `mods` all have one.
-Never
-download "latest": a CI step reads the pinned version and asks for that exact
-release tag, so a bad release elsewhere cannot break this repository's build
-on its own schedule, and a sibling checkout still always wins over the pin
-when one is present. This is the same file shape everywhere on purpose, so one
-Renovate custom manager (see this repository's `renovate.json`) can bump every
-repository's pins.
-
-## Cross-repository build order
-
-Rebuild a cross-repository change in dependency order:
-
-0. When the scaffolder or a template changed, run
-   `cd gradle && ./gradlew publishToMavenLocal` in `build` so `idea` and `mods`
-   pick it up locally ahead of a release.
-1. In `mappings`, run `python mappings.generator.py`, then
-   `python mappings.generator.py --check`. This produces `mappings.json`.
-2. In `coderpack`, run `python tools/addr.py` to regenerate
-   `agent/src/gen/addr.js`. Run `python tools/hooksafe.py` as well for every new
-   hooked row.
-3. In `coderpack`, run `./gradlew build`. The jars are written to
-   `api/build/libs/api-*.jar`, `api-kotlin/build/libs/api-kotlin-*.jar`, and
-   `zygote/build/libs/zygote-*.jar`. CI packages the generated agent separately
-   as the release asset `agent.zip`.
-4. In `protocol`, run `cargo build --release` to produce
-   `target/release/protocol.exe`. Step 2 has to have run first: the build
-   minifies `agent/src`, `gen/addr.js` included, into that executable.
-5. In `launcher`, run `pwsh tools/build.ps1`. It rebuilds and stages the sibling
-   outputs, reruns address generation, and produces
-   `dist/Sacred Mod Loader.exe`.
-
-Never skip registry or address-table generation. A stale `addr.js` can place a
-hook at the wrong address and leave it silent. Address generation may use its
-documented download fallback when no `mappings` sibling exists.
+- Each repository builds alone. Its guide says how it falls back from a sibling checkout to a pinned release.
+- A repository that needs another repository's GitHub Release asset pins it in a root `dependencies.json`: `[{ "path": "ancaria-dev/<repo>", "version": "<version, no v prefix>" }]`. One Renovate custom manager in `renovate.json` bumps them all, so keep the shape identical.
+- Never download "latest". CI requests the exact pinned tag. A sibling checkout always wins over the pin.
+- Rebuild a cross-repository change in this order:
+  0. Scaffolder or template changed: `cd gradle && ./gradlew publishToMavenLocal` in `build`.
+  1. `mappings`: `python mappings.generator.py`, then `python mappings.generator.py --check`.
+  2. `coderpack`: `python tools/addr.py`. Also `python tools/hooksafe.py` for every new hooked row.
+  3. `coderpack`: `./gradlew build`.
+  4. `protocol`: `cargo build --release`. Needs step 2, because the build embeds `gen/addr.js`.
+  5. `launcher`: `pwsh tools/build.ps1`.
+- Never skip registry or address-table generation. A stale `addr.js` places hooks at wrong addresses and they stay silent.
+- `hooksafe.py` reads the installed game, so CI cannot run it. Run it locally for every new hooked row.
 
 ## Releases
 
-The publishing workflows use repository-owned versions:
+- `pwsh tools/version.ps1` prints a repository's version. `pwsh tools/version.ps1 <new>` writes it everywhere that repository repeats it. It never touches `dependencies.json` or a pin on another repository; bump those deliberately.
+- On `master`, CI publishes only when tag `v<version>` does not exist, then creates it. A version change ships only if the workflow reaches its publish step.
+- Loader release chain: land and verify `mappings`; release changed `coderpack`; if the agent changed, raise `protocol/dependencies.json` and release `protocol`; raise `launcher/dependencies.json`; release `launcher`.
+- An agent change reaches players only through a `protocol` release, because `protocol.exe` embeds the agent. A workspace build uses the sibling agent and hides a missing release.
+- Toolchain chain: release changed `coderpack` API and `api-kotlin` (same version) before a `build` release that names them; release `build` before mods that need its plugin or linter, and before raising `idea`'s `templates` pin.
+- A Central upload is not a Central release. `publishingType` is `USER_MANAGED`, so an artifact resolves only after someone presses Publish in the portal. Before pushing a pin on a Central artifact, request its POM.
 
-- `coderpack` and `build` read `gradle.properties`.
-- `protocol` reads `Cargo.toml`.
-- `launcher` reads `.version`.
-- `idea` reads `pluginVersion` from `gradle.properties`.
-- Each mod has its own version and release tag in the form
-  `<id>-v<version>`.
+## Commits
 
-Every repository above except `mods` also has `tools/version.ps1`. Run it with
-no argument to print that repository's current version, or with a new one
-(`pwsh tools/version.ps1 0.99.1`) to write it everywhere that repository
-repeats the number by hand (a Gradle property, a Cargo manifest, a Javadoc
-comment, a README example) in one pass instead of hunting for each spot.
-`mods/tools/version.ps1` is the same idea applied to four mods at once: it
-refuses to bump them unless all four already agree, since that is the only
-case where "the same number everywhere" still makes sense. None of these
-scripts touch `dependencies.json` or a version-catalog entry that pins
-*another* repository's release: raising this repository's own version says
-nothing about those, and bumping them is a separate, deliberate step.
-
-On `master`, CI publishes a version only when its release tag does not already
-exist, then creates that tag as the release record. A version change does not
-ship unless the workflow reaches its publishing step successfully.
-
-For a change that crosses the loader release chain, land and verify
-`mappings` first, then release any changed `coderpack` artifacts, raise
-`protocol/dependencies.json` to that coderpack release if the agent changed,
-and release `protocol`. Update `launcher/dependencies.json` to those released
-versions before releasing `launcher`.
-
-The chain is one repository longer than it was for an agent change. The
-launcher no longer ships the agent, so a coderpack release alone changes
-nothing in a player's game: the JavaScript reaches them inside `protocol.exe`.
-A workspace build takes the sibling agent and shows the change at once, which
-is the case that can hide a missing release. The launcher still downloads
-`coderpack` and `protocol` independently, so neither release waits on the other
-unless the change itself requires coordinated versions.
-
-For a toolchain change, release a changed `coderpack` API before a `build`
-release or generated project that names that artifact version. `api-kotlin`
-shares that version and is named by every generated Kotlin project, so it is
-part of the same step: a `build` release whose Kotlin templates ask for a
-version Central does not have yet generates projects that do not resolve. Release `build`
-before releasing mods that require its new plugin or linter. Mod releases then
-remain independent and use `<id>-v<version>` tags.
-
-A Central upload is not a Central release. `publishingType` is `USER_MANAGED`
-in both publishing repositories, so an artifact only becomes resolvable once
-somebody presses Publish in the portal. `idea` resolves
-`dev.ancaria.coderpack:templates` from Central, so raising its pin has to wait
-for that press: pushed earlier, its CI fails on a dependency that does not exist
-yet. Check with a request for the POM before pushing the pin.
-
-`idea`'s workflow publishes the same plugin zip to the JetBrains Marketplace
-and a GitHub release. Release `build` first when the scaffolder changed, then
-raise `pluginVersion` in `idea`.
-
-## Rules
-
-- Commit in the repository that owns the changed file. Changes inside a
-  project directory belong to that repository’s history and remote. Changes to
-  root-owned files such as this guide, the root READMEs, `.gitmodules`, or
-  `ancaria.code-workspace` belong to the root repository. `idea` has its own
-  repository and remote.
-- Write the commit subject and nothing else. Imperative, sentence case, no
-  full stop, and as short as the change allows, ten words is the ceiling,
-  not the target. Name the one thing that changed: `Register the site
-  submodule`, `Add tools/version.ps1`, `Point CLAUDE.md at dependencies.json`,
-  `Sync the root German README with the version-update section`. No body, no
-  bullet list, and no trailer of any kind, `Co-Authored-By` included.
-- Commit as soon as a change is finished, and keep each commit to one change.
-  A new file and the edits that start using it are two commits. Files that
-  share nothing but the working tree they were found in do not share a commit
-  either.
-- Push only when I have asked for it. A finished commit is not permission to
-  push, and neither is a green build.
-- Do not move or rename a project directory. Sibling resolution uses these
-  directory names. A move can silently switch a build to downloaded artifacts.
-- Do not copy files between repositories to avoid rebuilding. Generate
-  `mappings.json`, `agent/src/gen/addr.js`, and
-  `launcher/install/payload/` with their owning commands.
-- Never type a game address directly into code. Every game address must come
-  from a row in `mappings`. A wrong RVA may produce no exception and a hook
-  that never fires.
-- Read `mappings/CLAUDE.md` before changing any address. Read the owning
-  repository’s `CLAUDE.md` before changing its code.
-
-## Typography
-
-These rules cover every text a reader sees: READMEs, the site, launcher
-strings, release notes, and plugin descriptions. Code, identifiers, paths,
-and commands inside backticks keep their literal characters.
-
-### Style in every language
-
-- Lead with the reader. A player wants to know what they get and how to start.
-  Internals belong in the developer section or the owning repository, and
-  each fact lives in one place that the others link to.
-- Connect sentences. Each one follows from the last. Do not jump from history
-  to a feature without the step between them.
-- Use active voice and strong verbs. Name who acts: the launcher, the host,
-  the mod, you.
-- One idea per sentence. Vary sentence length. Keep paragraphs to two or three
-  sentences.
-- Cut any word that carries no meaning. No filler openings, no summaries of
-  what was just said.
-- No bureaucratic noun chains. Write “we optimise”, not “the performing of the
-  optimisation”.
-- No clichés or AI filler: delve, tapestry, testament, crucial, beacon, look no
-  further, revolutionize, in conclusion, seamless, robust, leverage; «в
-  современном мире», «динамично развивающийся», «важно отметить»; „In der
-  heutigen, schnelllebigen Welt“, „Es ist wichtig zu betonen“, „Meilenstein“,
-  „einzigartig“, „ganzheitlich“.
-- Refer to me in the first person (“I”, «я», „ich“), never as “the author”.
-- Semicolons only inside complex lists. Otherwise use a full stop or a comma.
-
-### README template
-
-Every repository keeps `README.md` in Russian, `README.EN.md`, and
-`README.DE.md`, with the same sections in the same order in all three:
-
-1. The title and one sentence on what the repository is and who it serves.
-2. Two or three short paragraphs on what the reader gets from it.
-3. Как начать / Getting started / Erste Schritte: tasks as steps.
-4. Reference sections specific to the repository.
-5. Сборка / Building / Bauen.
-6. Релизы / Releases / Releases.
-7. Благодарности / Acknowledgements / Danksagung, only where there is any.
-8. Лицензия / License / Lizenz.
-
-The READMEs of individual mods in `mods/<id>/` are the exception: they stay a
-single English `README.md`.
-
-Leave out a section that has nothing to say. Loader-wide build and release
-steps live in the root `CONTRIBUTING` files. A component README links there
-instead of repeating them. The root READMEs speak to players and mod authors
-first, and `profile/` mirrors them with `../` links.
-
-### English
-
-- Curly quotes: “text”, and “text ‘inside’ text” for nested quotes.
-- Em dash without spaces (text—text) or en dash with spaces (text – text).
-  Never a hyphen as a dash.
-- Apostrophe for contractions and possessives: don't, it's, the user's guide.
-- Conversational but professional. Address the reader as “you”.
-
-### Russian
-
-- Quotes are «ёлочки». Nested quotes are „лапки“: «слово „слово“ слово».
-- The dash is an em dash with spaces: « — ». Never a hyphen.
-- Never an apostrophe in place of ъ.
-- Address the reader with «вы» in lower case. Avoid канцелярит: «осуществить
-  установку» becomes «установить».
-
-### German
-
-- Quotes are „Text“ (low opening, high closing).
-- The dash is an en dash with spaces: „Text – Text“. Never a hyphen.
-- No apostrophe for the genitive: Peters Auto. Only after s, z, or x: Max' Auto.
-- Address the reader with „du“, never „Sie“.
-- Avoid Nominalstil. Replace nouns in -ung, -heit, -keit with verbs:
-  „Wir optimieren“, not „Die Durchführung der Optimierung“.
-- Break up Schachtelsätze. Use modal particles (mal, ja, doch, halt) sparingly
-  and only in casual passages.
+- Commit in the repository that owns the file. Root-owned files (this guide, root READMEs, `.gitmodules`, `ancaria.code-workspace`) go to the root repository.
+- Write a subject line only: imperative, sentence case, no full stop, at most ten words, naming the one thing that changed.
+- Commit as soon as a change is finished. One change per commit.
+- A new file and the edits that start using it are two commits. Unrelated files never share a commit.
+- Push only when I ask. A finished commit or a green build is not permission.
 
 ## Gotchas
 
-- If the game runs elevated, the host, launcher, and every attaching probe in
-  `research` must also run elevated. A permissions mismatch can look like an
-  endless wait for a process the tool can already see.
-- `idea` is the only component that consumes another component’s Kotlin
-  implementation. Both its New Project dialog and `coderpack new` use
-  `dev.ancaria.coderpack:templates`. Do not create a second copy of those
-  templates.
-- The root repository has no CI. Eight component repositories have
-  `.github/workflows/build.yml`: `build`, `coderpack`, `protocol`, `launcher`,
-  `mods`, `idea`, `site`, and `mappings`. `research` has no workflow, and needs
-  none: nothing in it ships.
-- Each of those workflows runs that repository's own tests, so there is no
-  suite anywhere that only runs by hand. `mappings` is the exception in shape:
-  it has no tests, only `mappings.generator.py --check`, and its workflow runs
-  that. `hooksafe.py` is the one guard CI cannot run, because it reads bytes
-  out of the installed game, so run it locally for every new hooked row.
-- `launcher` CI deliberately uses the download path without sibling checkouts.
-  This tests an isolated launcher clone on every push. Exercise the from-source
-  path locally when changing how sibling outputs are built or staged.
-- A source build of `launcher` with a `coderpack` sibling does not require a
-  `mappings` sibling. `tools/build.ps1` passes `-Mappings` only when that path
-  contains `mappings.json`. Otherwise `tools/addr.py` uses its normal fallback
-  chain. `-Coderpack none` needs no mappings checkout.
-- `launcher/tools/install.ps1` reads the game path from the uncommitted
-  `launcher/.local.settings` file. A valid entry looks like
-  `sacred=D:\SteamLibrary\steamapps\common\Sacred Gold`. The script is expected
-  to throw when this file is absent on a fresh checkout.
+- If the game runs elevated, run the host, launcher, and every attaching probe elevated too. Otherwise the tool waits forever on a process it can see.
+- The root repository and `research` have no CI. Every other repository's workflow runs its own tests; `mappings` runs `mappings.generator.py --check`.
+
+# Exact calculation
+
+- Never guess or estimate a number, count, size, offset, address, date,
+  duration, percentage, or version comparison. Compute it.
+- Compute with a short task-specific Python script you run now. Use the
+  exact-calculations skill when it is available. Check which interpreter works
+  first: `python --version` (on this machine `python`, not `python3`).
+- Money and decimal quantities: `decimal.Decimal` built from strings.
+  Exact ratios: `fractions.Fraction`. Never binary float for exact values.
+- Dates and durations: `datetime` and `zoneinfo`.
+- Hex, RVA/VA, and offsets: compute them in Python (`hex()`, `int(x, 16)`,
+  image base 0x00400000). Never add them in your head.
+- Counts of files, rows, hooks, or tests: count them with a command. Never
+  copy a count from prose.
+- Round explicitly, state units and assumptions, and keep the source
+  precision.
+- If an input is ambiguous, ask me. If execution fails, fix it. Never present
+  a number you did not compute.
+
+# Typography
+
+Applies to every text a reader sees: READMEs, the site, launcher strings, release notes, plugin descriptions. Code, identifiers, paths, and commands in backticks keep their literal characters.
+
+## Style in every language
+
+- Lead with the reader. A player wants what they get and how to start. Internals go to the developer section or the owning repository. Each fact lives in one place; others link to it.
+- Connect sentences: each follows from the last. No jump from history to a feature without the step between.
+- Active voice, strong verbs. Name who acts: the launcher, the host, the mod, you.
+- One idea per sentence. Vary sentence length. Two or three sentences per paragraph.
+- Cut words that carry no meaning. No filler openings, no summaries of what was just said.
+- No bureaucratic noun chains: "we optimise", not "the performing of the optimisation".
+- Never use these clichés: delve, tapestry, testament, crucial, beacon, look no further, revolutionize, in conclusion, seamless, robust, leverage; «в современном мире», «динамично развивающийся», «важно отметить»; „In der heutigen, schnelllebigen Welt“, „Es ist wichtig zu betonen“, „Meilenstein“, „einzigartig“, „ganzheitlich“.
+- Refer to me in the first person ("I", «я», „ich“), never "the author".
+- Semicolons only inside complex lists. Otherwise a full stop or a comma.
+
+## README template
+
+- Every repository keeps `README.md` in Russian, `README.EN.md`, and `README.DE.md`, with the same sections in the same order:
+  1. Title and one sentence: what the repository is and who it serves.
+  2. Two or three short paragraphs on what the reader gets.
+  3. Как начать / Getting started / Erste Schritte: tasks as steps.
+  4. Reference sections specific to the repository.
+  5. Сборка / Building / Bauen.
+  6. Релизы / Releases / Releases.
+  7. Благодарности / Acknowledgements / Danksagung, only when there is any.
+  8. Лицензия / License / Lizenz.
+- Exception: a mod README in `mods/<id>/` is a single English `README.md`.
+- Leave out a section with nothing to say.
+- Loader-wide build and release steps live in the root `CONTRIBUTING` files. Component READMEs link there, not repeat them.
+- Root READMEs address players and mod authors first. `profile/` mirrors them with `../` links.
+
+## English
+
+- Curly quotes: “text”, nested “text ‘inside’ text”.
+- Dash: em dash without spaces (text—text) or en dash with spaces (text – text). Never a hyphen as a dash.
+- Apostrophe for contractions and possessives: don't, it's, the user's guide.
+- Conversational but professional. Address the reader as “you”.
+
+## Russian
+
+- Quotes «ёлочки», nested „лапки“: «слово „слово“ слово».
+- Dash: em dash with spaces « — ». Never a hyphen.
+- Never an apostrophe in place of ъ.
+- Address the reader as «вы», lower case.
+- Avoid канцелярит: «осуществить установку» becomes «установить».
+
+## German
+
+- Quotes „Text“: low opening, high closing.
+- Dash: en dash with spaces „Text – Text“. Never a hyphen.
+- No genitive apostrophe: Peters Auto. Only after s, z, or x: Max' Auto.
+- Address the reader as „du“, never „Sie“.
+- Avoid Nominalstil. Replace -ung, -heit, -keit nouns with verbs: „Wir optimieren“, not „Die Durchführung der Optimierung“.
+- Break up Schachtelsätze. Modal particles (mal, ja, doch, halt) sparingly, only in casual passages.
