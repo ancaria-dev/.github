@@ -305,6 +305,25 @@ and commands inside backticks keep their literal characters.
 - Refer to me in the first person (“I”, «я», „ich“), never as “the author”.
 - Semicolons only inside complex lists. Otherwise use a full stop or a comma.
 
+### README template
+
+Every repository keeps `README.md` in Russian, `README.EN.md`, and
+`README.DE.md`, with the same sections in the same order in all three:
+
+1. The title and one sentence on what the repository is and who it serves.
+2. Two or three short paragraphs on what the reader gets from it.
+3. Как начать / Getting started / Erste Schritte: tasks as steps.
+4. Reference sections specific to the repository.
+5. Сборка / Building / Bauen.
+6. Релизы / Releases / Releases.
+7. Благодарности / Acknowledgements / Danksagung, only where there is any.
+8. Лицензия / License / Lizenz.
+
+Leave out a section that has nothing to say. Loader-wide build and release
+steps live in the root `CONTRIBUTING` files; a component README links there
+instead of repeating them. The root READMEs speak to players and mod authors
+first, and `profile/` mirrors them with `../` links.
+
 ### English
 
 - Curly quotes: “text”, and “text ‘inside’ text” for nested quotes.
